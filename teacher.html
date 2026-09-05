@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://gbgcaonmdekumluwgwvn.supabase.co https://script.google.com https://script.googleusercontent.com">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Teacher — W.H. Academy</title>
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css"><script src="assets/vendor/katex/katex.min.js"></script><script src="assets/js/katex-render.js"></script><link rel="stylesheet" href="assets/vendor/mathlive/mathlive-static.css"><script src="assets/vendor/mathlive/mathlive.min.js"></script>
@@ -737,7 +737,7 @@ select.input { appearance: auto; background: var(--surface); }
   if (window.MathfieldElement) { try { window.MathfieldElement.fontsDirectory='assets/vendor/mathlive/fonts'; window.MathfieldElement.soundsDirectory=null; } catch(e){} }
 
 
-  var API_BASE_URL='https://script.google.com/macros/s/AKfycbxjaqW5hmUk6B5gYW3hRjAfsPrbrdZB4a3B3VfJRvfKcfepz4WPYIX_aCVKS-STmiwQIA/exec'; var API_KEY='Jdb-iJByoQ-WA0UwlQrorQOH77buDQjepPH0y2SsDyo'; var TKEY='wha:teacher_token'; var teacherToken=null;
+  var API_BASE_URL='https://gbgcaonmdekumluwgwvn.supabase.co/functions/v1/api'; var API_KEY='Jdb-iJByoQ-WA0UwlQrorQOH77buDQjepPH0y2SsDyo'; var TKEY='wha:teacher_token'; var teacherToken=null;
   function getToken(){return teacherToken;}
   function setToken(v){teacherToken=v||null;try{v?sessionStorage.setItem(TKEY,v):sessionStorage.removeItem(TKEY);}catch(e){}}
   function loadToken(){try{return sessionStorage.getItem(TKEY)||null;}catch(e){return null;}}

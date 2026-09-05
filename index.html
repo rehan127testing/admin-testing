@@ -10,7 +10,7 @@
      being framed (clickjacking). 'unsafe-inline' is required — the whole panel is
      one inline <script> + inline styles. challenges.cloudflare.com = Turnstile
      (S1); script.google.com = the API. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://gbgcaonmdekumluwgwvn.supabase.co https://script.google.com https://script.googleusercontent.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com">
 <!-- Audit S1: Cloudflare Turnstile on admin sign-in. OFF until you paste the SITE
      key below (and set TURNSTILE_SECRET_KEY + FLAG_CAPTCHA on the backend). -->
 <script>
@@ -1216,7 +1216,7 @@ select.input { appearance: auto; background: var(--surface); }
   // CONFIG — see the note at the top of this file. These two values also live
   // in the student site's assets/js/api.js. Change both together.
   // ==========================================================================
-  var API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxjaqW5hmUk6B5gYW3hRjAfsPrbrdZB4a3B3VfJRvfKcfepz4WPYIX_aCVKS-STmiwQIA/exec';
+  var API_BASE_URL = 'https://gbgcaonmdekumluwgwvn.supabase.co/functions/v1/api';
   var API_KEY = 'Jdb-iJByoQ-WA0UwlQrorQOH77buDQjepPH0y2SsDyo';
 
   // The admin session is stored under its own key, never the student site's

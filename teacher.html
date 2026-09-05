@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teacher — W.H. Academy</title>
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css"><script src="assets/vendor/katex/katex.min.js"></script><script src="assets/js/katex-render.js"></script><link rel="stylesheet" href="assets/vendor/mathlive/mathlive-static.css"><script src="assets/vendor/mathlive/mathlive.min.js"></script>
+<style>
+
+/* ---------------------------------------------------------------------------
+   Design tokens. Copied in rather than imported so this file stays standalone —
+   these match the student site's variables.css, so the panel still reads as
+   W.H. Academy.
+--------------------------------------------------------------------------- */
+:root {
+  --brand: #4338ca;
+  --brand-deep: #3730a3;
+  --brand-light: #6366f1;
+  --brand-tint: #eef2ff;
+
+  --ink: #1e293b;
+  --ink-soft: #475569;
+  --muted: #64748b;
+  --faint: #94a3b8;
+
+  --line: #e2e8f0;
+  --line-soft: #f1f5f9;
+  --surface: #ffffff;
+  --canvas: #f1f5f9;
+
+  --ok: #059669;
+  --warn: #d97706;
+  --bad: #dc2626;
+
+  --r-sm: 0.375rem;
+  --r-md: 0.5rem;
+  --r-lg: 0.75rem;
+
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.25);
+
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* [hidden] MUST WIN.
+   The browser only backs `hidden` with a user-agent display:none, and ANY
+   author display rule beats it. Several blocks here set display explicitly.
+   Without this, the sign-in panel and the console both render at once, and the
+   dialog backdrop — position:fixed, inset:0, opacity:0 — sits invisibly over
+   the whole page and swallows every click. Do not remove. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---- buttons ---------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: 0.9375rem; font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.btn--primary { background: var(--brand); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--brand-deep); }
+
+.btn--secondary { background: var(--brand-tint); color: var(--brand-deep); border-color: #c7d2fe; }
+.btn--secondary:hover:not(:disabled) { background: #e0e7ff; }
+
+.btn--quiet { background: transparent; color: var(--ink-soft); border-color: var(--line); }
+.btn--quiet:hover:not(:disabled) { background: var(--line-soft); }
+
+.btn--sm { padding: 0.35rem 0.7rem; font-size: 0.8125rem; }
+.btn--full { width: 100%; }
+.btn--lg { padding: 0.7rem 1rem; }
+
+/* ---- fields ----------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.field__label { font-size: 0.875rem; font-weight: 600; color: var(--ink-soft); }
+
+.field__hint { font-size: 0.8125rem; color: var(--muted); }
+
+.input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.input:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: var(--brand); }
+
+.stack { display: flex; flex-direction: column; gap: 1rem; }
+
+/* ---- badges ----------------------------------------------------------- */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600;
+  white-space: nowrap;
+}
+.badge--ok      { background: #d1fae5; color: #065f46; }
+.badge--warn    { background: #fef3c7; color: #92400e; }
+.badge--bad     { background: #fee2e2; color: #991b1b; }
+.badge--neutral { background: var(--line-soft); color: var(--ink-soft); }
+
+/* ---- sign-in gate ------------------------------------------------------ */
+/* Not the app shell: you are not "in" the panel yet. One centred card on the
+   brand colour, and nothing else to look at. */
+.gate {
+  min-height: 100vh; min-height: 100dvh;
+  display: grid; place-items: center;
+  padding: 1rem;
+  background: radial-gradient(120% 80% at 50% 0%, #4f46e5 0%, transparent 60%), var(--brand-deep);
+}
+
+.gate__card {
+  width: 100%; max-width: 24rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.gate__brand { display: flex; flex-direction: column; gap: 0.1rem; margin-bottom: 1.25rem; }
+.gate__mark  { font-size: 1.25rem; font-weight: 700; color: var(--brand-deep); }
+.gate__sub   { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.gate__note  { margin: 1rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--muted); }
+
+/* ---- shell ------------------------------------------------------------- */
+.shell { display: flex; min-height: 100vh; min-height: 100dvh; }
+
+.side {
+  width: 15rem; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 1.5rem;
+  padding: 1.25rem 1rem;
+  background: var(--brand-deep);
+  color: rgba(255,255,255,0.82);
+}
+
+.side__brand { display: flex; flex-direction: column; gap: 0.1rem; padding: 0 0.5rem; color: #fff; }
+.side__name  { font-size: 1.0625rem; font-weight: 700; line-height: 1.25; }
+.side__tag   { font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+
+.side__nav { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.side__item {
+  display: flex; align-items: center; gap: 0.65rem;
+  width: 100%; padding: 0.6rem 0.5rem;
+  border: 0; border-radius: var(--r-md);
+  background: transparent; color: inherit;
+  font-size: 0.9375rem; text-align: left; cursor: pointer;
+}
+.side__item svg { width: 1.125rem; height: 1.125rem; flex-shrink: 0; stroke: currentColor; fill: none; }
+.side__item:hover { background: rgba(255,255,255,0.1); }
+.side__item.is-active { background: rgba(255,255,255,0.16); color: #fff; font-weight: 600; }
+.side__item:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.side__foot { margin-top: auto; display: flex; flex-direction: column; gap: 0.35rem; }
+.side__who  { padding: 0 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.55); overflow-wrap: anywhere; }
+
+.main { flex: 1; min-width: 0; padding: 1.5rem; max-width: 76rem; }
+
+/* ---- headings ---------------------------------------------------------- */
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.head__title { margin: 0; font-size: 1.5rem; }
+.head__sub   { margin: 0.2rem 0 0; font-size: 0.875rem; color: var(--muted); max-width: 46ch; }
+
+/* ---- search ------------------------------------------------------------ */
+.search { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+.search__box { position: relative; flex: 1; min-width: 0; }
+.search__box svg {
+  position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+  width: 1.05rem; height: 1.05rem; stroke: var(--faint); fill: none; pointer-events: none;
+}
+.search__input { padding-left: 2.4rem; }
+
+/* ---- table ------------------------------------------------------------- */
+.table-wrap {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+table { width: 100%; min-width: 52rem; border-collapse: collapse; }
+
+th, td { padding: 0.7rem 0.9rem; text-align: left; vertical-align: middle; }
+
+th {
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--muted); border-bottom: 1px solid var(--line);
+}
+
+td { border-bottom: 1px solid var(--line-soft); font-size: 0.9375rem; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #fafbfc; }
+
+.cell-name { font-weight: 600; }
+
+/* Emails were breaking mid-word ("...gmail.co / m") because the first column
+   was too narrow to hold them. Widening it fixes the cause; break-word then
+   only splits a string that genuinely cannot fit, and prefers a sensible
+   break point when one exists. */
+th:first-child, td:first-child { min-width: 15rem; }
+
+.cell-sub  { font-size: 0.8125rem; color: var(--muted); overflow-wrap: break-word; }
+.cell-id   { font-family: var(--mono); font-size: 0.8125rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell-act  { text-align: right; white-space: nowrap; }
+
+.muted { color: var(--muted); }
+.count { margin-top: 0.5rem; font-size: 0.8125rem; color: var(--muted); }
+
+/* A dot rather than a second badge: "has an account" is a quieter fact than the
+   enrollment status beside it, and two badges per row would compete. */
+.dot { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; white-space: nowrap; }
+.dot::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; flex-shrink: 0; }
+.dot--ok::before   { background: var(--ok); }
+.dot--ok           { color: var(--ink-soft); }
+.dot--warn::before { background: var(--warn); }
+.dot--warn         { color: var(--warn); }
+
+/* ---- empty ------------------------------------------------------------- */
+.empty {
+  padding: 3rem 1.5rem; text-align: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.empty h2 { margin: 0 0 0.35rem; font-size: 1.0625rem; }
+.empty p  { margin: 0; color: var(--muted); font-size: 0.9375rem; }
+
+/* ---- overview ---------------------------------------------------------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+
+.tile {
+  display: flex; flex-direction: column; gap: 0.1rem;
+  padding: 1rem; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.tile__value { font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: var(--brand-deep); font-variant-numeric: tabular-nums; }
+.tile__label { font-size: 0.8125rem; color: var(--muted); }
+
+.panel { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.panel__title { margin: 0 0 0.75rem; font-size: 0.875rem; font-weight: 600; color: var(--ink-soft); }
+
+.bars { list-style: none; margin: 0; padding: 0; }
+.bar  { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--line-soft); font-size: 0.9375rem; }
+.bar:last-child { border-bottom: 0; }
+.bar__value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---- dialog ------------------------------------------------------------ */
+.backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  background: rgba(18, 26, 42, 0.48);
+}
+
+.dialog {
+  width: 100%; max-width: 30rem; max-height: 90vh; overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+.dialog h2 { margin: 0 0 1rem; font-size: 1.125rem; }
+
+.dialog__who { display: flex; flex-direction: column; gap: 0.1rem; margin: 0; }
+.dialog__acts { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+
+.choices { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.choices legend { padding: 0; margin-bottom: 0.4rem; font-size: 0.875rem; font-weight: 600; color: var(--ink-soft); }
+
+/* Each option carries a sentence about what it does to the student, so the
+   choice is made with its consequence visible rather than after it. A dropdown
+   would hide all four behind one word. */
+.choice {
+  display: flex; align-items: flex-start; gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  cursor: pointer;
+}
+.choice:hover { border-color: var(--brand-light); }
+.choice input { margin-top: 0.2rem; flex-shrink: 0; accent-color: var(--brand); }
+.choice:has(input:checked) { border-color: var(--brand); background: var(--brand-tint); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.choice__body { display: flex; flex-direction: column; gap: 0.1rem; }
+.choice__name { font-weight: 600; font-size: 0.9375rem; }
+.choice__desc { font-size: 0.8125rem; color: var(--muted); line-height: 1.45; }
+
+/* ---- code field -------------------------------------------------------- */
+.input--code {
+  font-family: var(--mono);
+  font-size: 1.25rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+
+/* ---- devices ----------------------------------------------------------- */
+.devices { list-style: none; margin: 0 0 1.25rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.device {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.device--current { border-color: var(--brand); background: var(--brand-tint); }
+
+.device__name { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.device__meta { font-size: 0.8125rem; color: var(--muted); margin-top: 0.15rem; }
+.device__tag {
+  font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.1rem 0.45rem; border-radius: 999px;
+  background: var(--brand); color: #fff;
+}
+
+/* The one destructive control on the page, so it is set apart rather than
+   sitting inline with the ordinary buttons. */
+.danger { border-color: #fecaca; background: #fef2f2; }
+.danger .panel__title { color: #991b1b; }
+.danger__body { margin: 0 0 1rem; font-size: 0.875rem; color: var(--ink-soft); line-height: 1.55; }
+.danger__body code {
+  font-family: var(--mono); font-size: 0.8125rem;
+  background: #fff; padding: 0.1rem 0.3rem; border-radius: var(--r-sm); border: 1px solid #fecaca;
+}
+
+.btn--danger { background: var(--bad); color: #fff; }
+.btn--danger:hover:not(:disabled) { background: #b91c1c; }
+
+/* ---- toasts ------------------------------------------------------------ */
+.toasts {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 60;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+}
+
+.toast {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  font-size: 0.9375rem;
+  background: var(--ink); color: #fff;
+}
+.toast--ok  { background: #065f46; }
+.toast--bad { background: #991b1b; }
+
+/* ---- responsive -------------------------------------------------------- */
+/* Below this width the sidebar becomes a top strip: a 15rem column on a phone
+   would leave nothing for the table it exists to navigate. */
+@media (max-width: 52rem) {
+  .shell { flex-direction: column; }
+  .side { width: 100%; flex-direction: row; align-items: center; gap: 0.75rem; padding: 0.75rem; overflow-x: auto; }
+  .side__brand { display: none; }
+  .side__nav { flex-direction: row; }
+  .side__item { width: auto; white-space: nowrap; }
+  .side__foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; }
+  .side__who { display: none; }
+  .main { padding: 1rem; }
+  .search { flex-direction: column; }
+  .dialog__acts { flex-direction: column-reverse; }
+  .dialog__acts .btn { width: 100%; }
+}
+
+/* ---- Boss Papers builder --------------------------------------------- */
+.paper-form { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+.paper-meta { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+@media (min-width: 720px) { .paper-meta { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+select.input { appearance: auto; background: var(--surface); }
+.paper-qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.q-card { border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.9rem; margin-bottom: 0.75rem; background: var(--line-soft); }
+.q-card__head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.q-card__n { font-weight: 700; font-size: 0.8125rem; color: var(--ink-soft); }
+.q-tag { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.q-tag--mcq { background: #6d28d9; } .q-tag--short { background: #0369a1; } .q-tag--long { background: #b45309; }
+.q-mini { font-size: 0.8125rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+.input--mini { width: 4.75rem; padding: 0.3rem 0.5rem; }
+.q-text { width: 100%; resize: vertical; }
+.opts { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.opt-row { display: flex; align-items: center; gap: 0.5rem; }
+.opt-row input[type="text"] { flex: 1; }
+.opt-row input[type="radio"] { width: 1.1rem; height: 1.1rem; flex-shrink: 0; accent-color: var(--brand); }
+.opt-x { padding: 0.25rem 0.6rem; line-height: 1; }
+.opts__foot { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.paper-addrow { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.paper-acts { display: flex; gap: 0.75rem; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 1rem; }
+.paper-existing { margin-top: 1.75rem; }
+.pp-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--line-soft); }
+.pp-row__title { font-weight: 600; font-size: 0.9375rem; }
+.pp-row__side { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+.pp-pill { font-size: 0.6875rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.pp-pill--active { background: #d9f5ea; color: var(--ok); }
+.pp-pill--draft { background: var(--line-soft); color: var(--ink-soft); }
+.pp-pill--past { background: #fdf0dc; color: var(--warn); }
+
+/* ---- Grading ---- */
+.gr-pill { font-size: 0.6875rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.gr-pill--submitted { background: #fdf0dc; color: var(--warn); }
+.gr-pill--graded, .gr-pill--rechecked { background: #d9f5ea; color: var(--ok); }
+.gr-pill--recheckrequested { background: #fee2e2; color: var(--bad); }
+.gr-runningbox { text-align: right; flex-shrink: 0; }
+.gr-running { display: block; font-size: 1.25rem; font-weight: 800; color: var(--brand-deep); }
+.gr-q { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1rem; margin-bottom: 0.85rem; background: var(--surface); box-shadow: var(--shadow); }
+.gr-q__head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; }
+.gr-q__num { font-weight: 800; color: var(--brand); }
+.gr-q__type { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+.gr-q__text { font-weight: 600; margin: 0 0 0.5rem; }
+.gr-q__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: block; margin: 0.4rem 0 0.2rem; }
+.gr-q__ans { background: var(--brand-tint); border-radius: var(--r-md); padding: 0.55rem 0.7rem; white-space: pre-wrap; overflow-wrap: break-word; font-size: 0.9375rem; }
+.gr-q__ans--empty { background: var(--line-soft); color: var(--muted); font-style: italic; }
+.gr-q__correct { font-size: 0.8125rem; color: var(--ok); margin-top: 0.35rem; }
+.gr-q__grade { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed var(--line); }
+.gr-q__marksfield { width: 130px; flex-shrink: 0; }
+.gr-q__corrfield { flex: 1; min-width: 200px; }
+.gr-mcqmark { display: flex; gap: 0.4rem; }
+.gr-mcqmark .btn { padding: 0.3rem 0.6rem; }
+@media (max-width: 520px) {
+  .paper-acts { flex-direction: column-reverse; } .paper-acts .btn { width: 100%; }
+  .q-mini { margin-left: 0; }
+  .pp-row { flex-direction: column; align-items: flex-start; }
+}
+
+
+  /* ---- Steps question builder + grading (uses the panel's own tokens) ---- */
+  .steps-ed { display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem; }
+  .steps-ed__hint { font-size:0.8rem; color:var(--muted, #667); margin:0; }
+  .steps-rows { display:flex; flex-direction:column; gap:0.5rem; }
+  .step-row { display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem;
+    border:1px solid var(--line); border-radius:var(--r-sm, 8px); background:var(--surface); }
+  .step-row__n { flex:0 0 auto; width:1.5rem; height:1.5rem; display:inline-flex;
+    align-items:center; justify-content:center; border-radius:999px;
+    background:var(--surface-2, #eef); color:var(--ink, #234); font-size:0.75rem; font-weight:700; }
+  .step-row__main { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:0.35rem; }
+  .step-row__preview { font-size:0.95rem; min-height:1rem; color:var(--ink, #234);
+    padding:0.15rem 0.25rem; overflow-wrap:anywhere; }
+  .step-row__preview:empty { display:none; }
+  .step-row__side { flex:0 0 auto; display:flex; flex-direction:column; gap:0.35rem; align-items:flex-end; }
+  .step-chk { font-size:0.75rem; color:var(--muted, #667); white-space:nowrap; display:inline-flex; gap:0.25rem; align-items:center; }
+  .step-btns { display:flex; gap:0.25rem; }
+  .step-btn { width:26px; height:26px; border:1px solid var(--line); border-radius:6px;
+    background:var(--surface); color:var(--muted, #667); cursor:pointer; line-height:1; font-size:0.85rem; }
+  .step-btn:hover { color:var(--ink, #234); }
+  .steps-grading { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end; }
+  .steps-knobs { display:flex; gap:0.75rem; }
+  .q-preview { font-size:0.95rem; color:var(--ink,#234); padding:0.15rem 0.25rem; min-height:1rem; overflow-wrap:anywhere; }
+  .q-preview:empty { display:none; }
+  .opt-row { flex-wrap:wrap; }
+  .opt-preview { flex-basis:100%; font-size:0.9rem; color:var(--ink,#234); padding:0.1rem 0 0 2rem; }
+  .opt-preview:empty { display:none; }
+  .q-tag--steps { background:#ede9fe; color:#5b21b6; }
+  /* grading */
+  .gr-steps { display:flex; flex-wrap:wrap; gap:1rem; margin:0.5rem 0; }
+  .gr-steps__col { flex:1 1 220px; min-width:0; }
+  .gr-steps__label { font-size:0.75rem; font-weight:700; color:var(--muted,#667); }
+  .gr-steps__list { list-style:none; margin:0.25rem 0 0; padding:0; display:flex; flex-direction:column; gap:0.3rem; counter-reset:s; }
+  .gr-steps__item { display:flex; gap:0.4rem; align-items:baseline; padding:0.3rem 0.5rem;
+    border:1px solid var(--line); border-radius:6px; background:var(--surface); }
+  .gr-steps__item::before { counter-increment:s; content:counter(s); font-size:0.7rem; font-weight:700; color:var(--muted,#667); }
+  .gr-steps__item--bad { border-color:#f5a; background:#fff1f5; }
+  .gr-steps__tag { font-size:0.7rem; color:#b4004e; margin-left:auto; white-space:nowrap; }
+  .gr-suggest { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:0.4rem 0;
+    padding:0.4rem 0.6rem; border:1px dashed var(--line); border-radius:8px; }
+  .gr-suggest__pill { font-size:0.85rem; }
+  .gr-suggest__detail { font-size:0.75rem; color:var(--muted,#667); }
+  .ba-edit-banner { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    padding:0.6rem 0.9rem; border:1px solid #c7d2fe; background:#eef2ff; color:#3730a3;
+    border-radius:var(--r-md,10px); font-size:0.9rem; }
+  .ba-edit-banner em { color:var(--muted,#667); font-style:normal; }
+  .math-palette { display:flex; flex-wrap:wrap; gap:0.3rem; align-items:center; margin:0 0 0.6rem;
+    padding:0.4rem 0.5rem; border:1px solid var(--line); border-radius:var(--r-md,10px); background:var(--surface); }
+  .math-palette__hint { font-size:0.75rem; color:var(--muted,#667); margin-right:0.25rem; }
+  .math-palette button { min-width:30px; height:28px; padding:0 0.4rem; border:1px solid var(--line);
+    border-radius:6px; background:var(--surface); color:var(--ink,#234); cursor:pointer; font-size:0.9rem; line-height:1; }
+  .math-palette button:hover { background:var(--surface-2,#eef); border-color:var(--brand,#6366f1); }
+
+  /* MathLive equation-editor modal */
+  .mf-modal { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; }
+  .mf-modal[hidden] { display:none; }
+  .mf-modal__backdrop { position:absolute; inset:0; background:rgba(15,23,42,0.45); }
+  .mf-modal__box { position:relative; width:min(680px,92vw); background:var(--surface,#fff); border:1px solid var(--line,#e5e7eb); border-radius:var(--r-lg,14px); padding:1.25rem; box-shadow:0 20px 50px rgba(0,0,0,0.25); }
+  .mf-modal__title { font-weight:800; margin-bottom:0.75rem; }
+  .mf-field { width:100%; font-size:1.5rem; padding:0.5rem 0.75rem; border:1px solid var(--line,#e5e7eb); border-radius:var(--r-md,10px); background:#fff; }
+  .mf-modal__hint { font-size:0.8rem; color:var(--muted,#667); margin:0.6rem 0 1rem; }
+  .mf-modal__hint code { background:var(--surface-2,#eef); padding:0.05rem 0.3rem; border-radius:4px; }
+  .mf-modal__actions { display:flex; justify-content:flex-end; gap:0.5rem; }
+
+
+
+  .t-gate{max-width:420px;margin:8vh auto;padding:2rem}.t-gate .field{margin-bottom:1rem}
+  .t-topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+  .t-tabs{display:flex;gap:.5rem;margin-bottom:1rem}
+  .t-tab{padding:.5rem 1rem;border:1px solid var(--line);border-radius:999px;background:var(--surface);cursor:pointer;font-weight:600}
+  .t-tab[aria-current="true"]{background:var(--brand,#6366f1);color:#fff;border-color:var(--brand,#6366f1)}
+  .t-subjects-chip{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--surface-2,#eef);font-size:.75rem;margin-left:.25rem}
+  .mf-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center}.mf-modal[hidden]{display:none}
+  .mf-modal__backdrop{position:absolute;inset:0;background:rgba(15,23,42,0.45)}
+  .mf-modal__box{position:relative;width:min(680px,92vw);background:var(--surface,#fff);border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:1.25rem;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+  .mf-modal__title{font-weight:800;margin-bottom:.75rem}.mf-field{width:100%;font-size:1.5rem;padding:.5rem .75rem;border:1px solid var(--line,#e5e7eb);border-radius:10px;background:#fff}
+  .mf-modal__hint{font-size:.8rem;color:var(--muted,#667);margin:.6rem 0 1rem}.mf-modal__actions{display:flex;justify-content:flex-end;gap:.5rem}
+
+</style>
+</head>
+<body>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="t-gate" class="t-gate panel" hidden>
+    <h1 class="head__title" style="margin-top:0;">Teacher sign in</h1>
+    <p class="head__sub">Use the email and PIN your administrator gave you.</p>
+    <label class="field"><span class="field__label">Email</span>
+      <input class="input" id="t-email" type="email" autocomplete="username" placeholder="you@example.com"></label>
+    <label class="field"><span class="field__label">PIN</span>
+      <input class="input" id="t-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Your PIN"></label>
+    <button class="btn btn--primary" id="t-signin" type="button" style="width:100%;">Sign in</button>
+  </div>
+
+
+  <div id="t-app" class="wrap" hidden>
+    <div class="t-topbar"><div><strong>Teacher panel</strong> — <span id="t-name"></span> <span id="t-subjects"></span></div>
+      <button class="btn btn--quiet btn--sm" id="t-signout" type="button">Sign out</button></div>
+    <div class="t-tabs"><button class="t-tab" data-tab="papers" type="button">Boss Papers</button>
+      <button class="t-tab" data-tab="grading" type="button">Grading</button></div>
+
+<section data-panel="papers" hidden>
+      <header class="head">
+        <div>
+          <h1 class="head__title">Boss Papers</h1>
+          <p class="head__sub">Build an exam paper and activate it. Activating replaces the current live paper for that level + class + subject; the old one moves to Past Papers.</p>
+        </div>
+        <button class="btn btn--quiet btn--sm" data-act="refresh-papers" type="button">Refresh list</button>
+      </header>
+
+      <form id="ba-form" class="paper-form" novalidate autocomplete="off">
+        <div id="ba-edit-banner" class="ba-edit-banner" hidden>
+          <span>Editing existing paper: <strong id="ba-edit-title"></strong> <em id="ba-edit-status"></em></span>
+          <button class="btn btn--quiet btn--sm" type="button" data-act="ba-cancel-edit">Cancel / new paper</button>
+        </div>
+        <div class="paper-meta">
+          <div class="field">
+            <label class="field__label" for="ba-level">Level</label>
+            <select class="input" id="ba-level">
+              <option value="L1">L1 — Chapter</option>
+              <option value="L2">L2 — Subject</option>
+              <option value="L3">L3 — Class</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="ba-class">Class</label>
+            <select class="input" id="ba-class"></select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="ba-subject">Subject</label>
+            <select class="input" id="ba-subject"><option value="">— choose —</option></select>
+            <datalist id="ba-subjects">
+              <option>Mathematics</option><option>English</option><option>Urdu</option>
+              <option>Science</option><option>Physics</option><option>Chemistry</option>
+              <option>Biology</option><option>Computer Science</option>
+              <option>Islamiat</option><option>Pakistan Studies</option>
+              <option>General Knowledge</option>
+            </datalist>
+            <span class="field__hint">Leave empty for an L3 (whole-class) paper.</span>
+          </div>
+          <div class="field">
+            <label class="field__label" for="ba-chapter">Chapter ref</label>
+            <input class="input" id="ba-chapter" placeholder="e.g. class-8/mathematics/percentage">
+            <span class="field__hint">L1 only — optional.</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="ba-title">Paper title</label>
+          <input class="input" id="ba-title" placeholder="e.g. Class 8 Mathematics — Chapter 3">
+        </div>
+        <div class="field">
+          <label class="field__label" for="ba-desc">Description</label>
+          <input class="input" id="ba-desc" placeholder="Shown under the paper title to students (optional)">
+          <label class="field__label" for="ba-instructions" style="margin-top:0.5rem;">Instructions (optional)</label>
+          <textarea class="input" id="ba-instructions" rows="2" placeholder="Extra rules for THIS paper, shown to students under the standard instructions. Math in $…$."></textarea>
+        </div>
+
+        <div class="paper-qhead">
+          <h2 class="panel__title" style="margin:0;">Questions</h2>
+          <span class="count" id="ba-total" style="margin:0;">0 questions · 0 marks</span>
+        </div>
+
+        <div id="ba-math-palette" class="math-palette" aria-label="Math insert toolbar">
+          <span class="math-palette__hint">Math insert (click in a box first):</span>
+          <button type="button" data-mf="1" title="Visual equation editor (build it like in Word)" style="font-weight:700;">fx editor</button>
+          <button type="button" data-tex="\frac{$1}{}" title="Fraction a/b">a&frasl;b</button>
+          <button type="button" data-tex="^{$1}" title="Power / exponent">x&#8319;</button>
+          <button type="button" data-tex="_{$1}" title="Subscript">x&#8336;</button>
+          <button type="button" data-tex="\sqrt{$1}" title="Square root">&radic;</button>
+          <button type="button" data-tex="\sqrt[$1]{}" title="nth root">&#8319;&radic;</button>
+          <button type="button" data-tex="\left($1\right)" title="Auto-size ( )">(&nbsp;)</button>
+          <button type="button" data-tex="\left|$1\right|" title="Absolute value">|x|</button>
+          <button type="button" data-tex="\int_{$1}^{}\," title="Integral">&int;</button>
+          <button type="button" data-tex="\sum_{$1}^{}" title="Summation">&sum;</button>
+          <button type="button" data-tex="\lim_{$1 \to }" title="Limit">lim</button>
+          <button type="button" data-tex="\begin{pmatrix} $1 & \\ & \end{pmatrix}" title="2×2 matrix">[&#9636;]</button>
+          <button type="button" data-tex="\le " title="Less than or equal">&le;</button>
+          <button type="button" data-tex="\ge " title="Greater than or equal">&ge;</button>
+          <button type="button" data-tex="\ne " title="Not equal">&ne;</button>
+          <button type="button" data-tex="\pm " title="Plus-minus">&plusmn;</button>
+          <button type="button" data-tex="\times " title="Times">&times;</button>
+          <button type="button" data-tex="\div " title="Divide">&divide;</button>
+          <button type="button" data-tex="\cdot " title="Dot">&middot;</button>
+          <button type="button" data-tex="\pi " title="pi">&pi;</button>
+          <button type="button" data-tex="\theta " title="theta">&theta;</button>
+          <button type="button" data-tex="\infty " title="infinity">&infin;</button>
+          <button type="button" data-tex="\Rightarrow " title="implies">&rArr;</button>
+        </div>
+
+        <div id="ba-questions"></div>
+
+        <div class="paper-addrow">
+          <button class="btn btn--quiet btn--sm" type="button" id="ba-add-mcq">+ MCQ</button>
+          <button class="btn btn--quiet btn--sm" type="button" id="ba-add-short">+ Short question</button>
+          <button class="btn btn--quiet btn--sm" type="button" id="ba-add-long">+ Long question</button>
+          <button class="btn btn--quiet btn--sm" type="button" id="ba-add-steps">+ Steps question</button>
+        </div>
+
+        <div class="paper-acts">
+          <button class="btn btn--quiet" type="button" id="ba-save-draft">Save as draft</button>
+          <button class="btn btn--primary" type="button" id="ba-save-activate">Save &amp; activate</button>
+        </div>
+      </form>
+
+      <div class="paper-existing">
+        <h2 class="panel__title">Existing papers</h2>
+        <div id="ba-papers-list"></div>
+      </div>
+    </section>
+<section data-panel="grading" hidden>
+      <!-- Stage 1: pick a paper to grade -->
+      <div id="gr-stage-papers">
+        <header class="head">
+          <div>
+            <h1 class="head__title">Grading</h1>
+            <p class="head__sub">Pick a paper to see who has submitted it, then grade each paper question by question. Releasing a result makes the marks and feedback visible to that student.</p>
+          </div>
+          <button class="btn btn--quiet btn--sm" data-act="gr-refresh-papers" type="button">Refresh</button>
+        </header>
+        <div class="panel">
+          <div id="gr-papers-list"><p class="muted">Loading…</p></div>
+        </div>
+      </div>
+
+      <!-- Stage 2: submissions for the chosen paper -->
+      <div id="gr-stage-subs" hidden>
+        <header class="head">
+          <div>
+            <button class="btn btn--quiet btn--sm" data-act="gr-back-papers" type="button">‹ All papers</button>
+            <h1 class="head__title" id="gr-subs-title" style="margin-top:.5rem;">Submissions</h1>
+            <p class="head__sub" id="gr-subs-sub"></p>
+          </div>
+          <button class="btn btn--quiet btn--sm" data-act="gr-refresh-subs" type="button">Refresh</button>
+        </header>
+        <div class="panel">
+          <div id="gr-subs-list"><p class="muted">Loading…</p></div>
+        </div>
+      </div>
+
+      <!-- Stage 3: grade one submission -->
+      <div id="gr-stage-grade" hidden>
+        <header class="head">
+          <div>
+            <button class="btn btn--quiet btn--sm" data-act="gr-back-subs" type="button">‹ Back to submissions</button>
+            <h1 class="head__title" id="gr-grade-title" style="margin-top:.5rem;">Grade paper</h1>
+            <p class="head__sub" id="gr-grade-sub"></p>
+          </div>
+          <div class="gr-runningbox"><span class="gr-running" id="gr-running">0 / 0</span><span class="cell-sub">awarded</span></div>
+        </header>
+        <div id="gr-grade-host"></div>
+        <div class="panel">
+          <div class="field">
+            <label class="field__label" for="gr-overall">Overall feedback <span class="muted">(optional — shown above the per-question marks)</span></label>
+            <textarea class="input" id="gr-overall" rows="3" placeholder="A short note on the whole paper…"></textarea>
+          </div>
+          <div class="paper-acts">
+            <button class="btn btn--quiet" type="button" data-act="gr-save-draft">Save draft (not shown to student)</button>
+            <button class="btn btn--primary" type="button" data-act="gr-release">Save &amp; release result</button>
+          </div>
+          <p class="field__hint" style="margin-top:.5rem;">A question left blank scores 0. You can never award more than a question is worth. Releasing sets the paper to Graded and shows the student their marks + feedback.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+
+  <div id="mf-modal" class="mf-modal" hidden>
+    <div class="mf-modal__backdrop" data-mf-close="1"></div>
+    <div class="mf-modal__box" role="dialog" aria-modal="true" aria-label="Equation editor">
+      <div class="mf-modal__title">Equation editor</div>
+      <math-field id="mf-field" class="mf-field"></math-field>
+      <p class="mf-modal__hint">Type like a calculator — e.g. x^2, 1/2 (auto-stacks), sqrt, int. Press Insert to place it in your box.</p>
+      <div class="mf-modal__actions">
+        <button class="btn btn--quiet" type="button" id="mf-cancel">Cancel</button>
+        <button class="btn btn--primary" type="button" id="mf-insert">Insert</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+
+
+  var DEFAULT_MARKS = { mcq:1, short:4, long:10, steps:8 };
+  var DEFAULT_LINES = { short:4, long:10 };
+  var qbuild = []; var editingPaperId = null; var qseq = 0; var lastMathField = null;
+  var grState = { paperId:null, paperTitle:'', submissionId:null, total:0 };
+  var mfTarget = null, mfStart = 0, mfEnd = 0, mfWrap = false;
+  if (window.MathfieldElement) { try { window.MathfieldElement.fontsDirectory='assets/vendor/mathlive/fonts'; window.MathfieldElement.soundsDirectory=null; } catch(e){} }
+
+
+  var API_BASE_URL='https://script.google.com/macros/s/AKfycbxjaqW5hmUk6B5gYW3hRjAfsPrbrdZB4a3B3VfJRvfKcfepz4WPYIX_aCVKS-STmiwQIA/exec'; var API_KEY='Jdb-iJByoQ-WA0UwlQrorQOH77buDQjepPH0y2SsDyo'; var TKEY='wha:teacher_token'; var teacherToken=null;
+  function getToken(){return teacherToken;}
+  function setToken(v){teacherToken=v||null;try{v?sessionStorage.setItem(TKEY,v):sessionStorage.removeItem(TKEY);}catch(e){}}
+  function loadToken(){try{return sessionStorage.getItem(TKEY)||null;}catch(e){return null;}}
+  function endSession(msg){setToken(null);showGate();if(msg)toast(msg,'bad');}
+  function fail(err,fallback){if(isAuthError(err)){endSession('Your session ended — please sign in again.');return;}toast((err&&err.message)||fallback,'bad');}
+  function showGate(){qs('#t-gate').hidden=false;qs('#t-app').hidden=true;}
+  function showApp(){qs('#t-gate').hidden=true;qs('#t-app').hidden=false;}
+  var wired=false;
+  function afterLogin(res){
+    qs('#t-name').textContent=res.fullName||'Teacher';
+    var subs=res.subjects||[];
+    qs('#t-subjects').innerHTML=subs.map(function(s){return '<span class="t-subjects-chip">'+esc(s)+'</span>';}).join('');
+    var sel=qs('#ba-subject'); if(sel){sel.innerHTML='<option value="">— choose —</option>'+subs.map(function(s){return '<option>'+esc(s)+'</option>';}).join('');}
+    showApp(); if(!wired){wired=true;wirePapers();wireGrading();} loadPapers(); loadGrading();
+  }
+  function signIn(btn){var email=qs('#t-email').value.trim();var pin=qs('#t-pin').value.trim();
+    if(!email||!pin){toast('Enter your email and PIN.','bad');return;} busy(btn,true);
+    call('teacher/login',{email:email,pin:pin}).then(function(res){setToken(res.token);afterLogin(res);})
+    .catch(function(e){toast((e&&e.message)||'Sign-in failed.','bad');}).then(function(){busy(btn,false);});}
+  function switchTab(name){['papers','grading'].forEach(function(n){var sec=qs('[data-panel="'+n+'"]');if(sec)sec.hidden=(n!==name);var tab=qs('.t-tab[data-tab="'+n+'"]');if(tab)tab.setAttribute('aria-current',n===name?'true':'false');});}
+  function boot(){
+    qs('#t-signin').addEventListener('click',function(e){signIn(e.currentTarget);});
+    qs('#t-pin').addEventListener('keydown',function(e){if(e.key==='Enter')signIn(qs('#t-signin'));});
+    qs('#t-signout').addEventListener('click',function(){endSession();});
+    document.querySelectorAll('.t-tab').forEach(function(b){b.addEventListener('click',function(){switchTab(b.getAttribute('data-tab'));});});
+    switchTab('papers');
+    var tok=loadToken();
+    if(tok){teacherToken=tok;authed('teacher/mySubjects',{}).then(function(res){afterLogin(res);}).catch(function(){endSession();});}
+    else{showGate();}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+
+
+/* reused builder+grading (routes -> teacher/*) */
+
+  function newQ(type) {
+    qseq += 1;
+    var q = { _id: 'q' + qseq, type: type, text: '', marks: DEFAULT_MARKS[type] };
+    if (type === 'mcq') { q.options = ['', '', '', '']; q.correctIndex = 0; }
+    else if (type === 'steps') {
+      // Author writes real steps top-to-bottom in the correct order and ticks
+      // distractors. gradingMode 'manual' by default; 'auto' surfaces knobs.
+      q.steps = [{ text: '', distractor: false }, { text: '', distractor: false }];
+      q.gradingMode = 'manual';
+      q.perStep = '';
+      q.penalty = '';
+      q.ordered = true;
+    }
+    else { q.maxLines = DEFAULT_LINES[type]; }
+    return q;
+  }
+
+  function stepsEditor(q, i) {
+    var rows = (q.steps || []).map(function (s, si) {
+      return '<div class="step-row" data-idx="' + i + '" data-step="' + si + '">' +
+        '<span class="step-row__n">' + (si + 1) + '</span>' +
+        '<div class="step-row__main">' +
+          '<textarea class="input" rows="1" placeholder="Step text — math in $…$" data-field="step-text" data-idx="' + i + '" data-step="' + si + '">' + esc(s.text) + '</textarea>' +
+          '<div class="step-row__preview" data-idx="' + i + '" data-step="' + si + '" data-math="' + esc(s.text) + '"></div>' +
+        '</div>' +
+        '<div class="step-row__side">' +
+          '<label class="step-chk"><input type="checkbox" data-field="step-distractor" data-idx="' + i + '" data-step="' + si + '"' + (s.distractor ? ' checked' : '') + '> distractor</label>' +
+          '<div class="step-btns">' +
+            '<button class="step-btn" type="button" data-act="step-up" data-idx="' + i + '" data-step="' + si + '" title="Move up">↑</button>' +
+            '<button class="step-btn" type="button" data-act="step-down" data-idx="' + i + '" data-step="' + si + '" title="Move down">↓</button>' +
+            '<button class="step-btn" type="button" data-act="rm-step" data-idx="' + i + '" data-step="' + si + '" title="Remove step">✕</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var isAuto = (q.gradingMode === 'auto');
+    var grading =
+      '<div class="steps-grading">' +
+        '<label class="q-mini" style="margin-left:0;">Grading ' +
+          '<select class="input input--mini" data-field="grading-mode" data-idx="' + i + '" style="min-width:160px;">' +
+            '<option value="manual"' + (isAuto ? '' : ' selected') + '>Manual (by hand)</option>' +
+            '<option value="auto"' + (isAuto ? ' selected' : '') + '>Auto (suggest a score)</option>' +
+          '</select>' +
+        '</label>' +
+        '<label class="q-mini" style="margin-left:0;"><input type="checkbox" data-field="ordered" data-idx="' + i + '"' + ((q.ordered === false) ? '' : ' checked') + '> Order matters</label>' +
+        '<div class="steps-knobs"' + (isAuto ? '' : ' hidden') + '>' +
+          '<label class="q-mini" style="margin-left:0;">Marks / step ' +
+            '<input class="input input--mini" type="number" min="0" step="0.5" data-field="perStep" data-idx="' + i + '" value="' + esc(q.perStep) + '" placeholder="auto"></label>' +
+          '<label class="q-mini" style="margin-left:0;">Distractor penalty ' +
+            '<input class="input input--mini" type="number" min="0" step="0.5" data-field="penalty" data-idx="' + i + '" value="' + esc(q.penalty) + '" placeholder="1"></label>' +
+        '</div>' +
+      '</div>';
+
+    return '<div class="steps-ed">' +
+      '<p class="steps-ed__hint">Write the REAL steps top-to-bottom in the correct order; tick the wrong/extra ones as “distractor”. No need to type a correct order.</p>' +
+      '<div class="steps-rows">' + rows + '</div>' +
+      '<button class="btn btn--quiet btn--sm" type="button" data-act="add-step" data-idx="' + i + '">+ Add step</button>' +
+      grading +
+    '</div>';
+  }
+
+  function questionCard(q, i) {
+    var tag = q.type === 'mcq' ? 'MCQ' : (q.type === 'short' ? 'Short' : (q.type === 'steps' ? 'Steps' : 'Long'));
+    var head =
+      '<div class="q-card__head">' +
+        '<span class="q-tag q-tag--' + q.type + '">' + tag + '</span>' +
+        '<span class="q-card__n">Q' + (i + 1) + '</span>' +
+        '<label class="q-mini">Marks <input class="input input--mini" type="number" min="0" step="1" data-field="marks" data-idx="' + i + '" value="' + esc(q.marks) + '"></label>' +
+        '<button class="btn btn--quiet btn--sm" type="button" data-act="rm-q" data-idx="' + i + '">Remove</button>' +
+      '</div>';
+    var textPlaceholder = (q.type === 'steps') ? 'Question text — wrap math in $…$, e.g. Solve for $x$: $2x + 3 = 11$' : 'Question text — math in $…$ or write like x^2 (auto-rendered)';
+    var text = '<textarea class="input q-text" rows="2" placeholder="' + textPlaceholder + '" data-field="text" data-idx="' + i + '">' + esc(q.text) + '</textarea>';
+    text += '<div class="q-preview" data-idx="' + i + '" data-math="' + esc(q.text) + '"></div>';
+    var body = '';
+    if (q.type === 'steps') {
+      body = stepsEditor(q, i);
+    } else if (q.type === 'mcq') {
+      var opts = (q.options || []).map(function (opt, oi) {
+        return '<div class="opt-row">' +
+          '<input type="radio" name="correct-' + i + '" data-field="correct" data-idx="' + i + '" value="' + oi + '"' + (Number(q.correctIndex) === oi ? ' checked' : '') + ' title="Correct option">' +
+          '<input class="input" type="text" placeholder="Option ' + String.fromCharCode(65 + oi) + '" data-field="opt" data-idx="' + i + '" data-opt="' + oi + '" value="' + esc(opt) + '">' +
+          '<button class="btn btn--quiet btn--sm opt-x" type="button" data-act="rm-opt" data-idx="' + i + '" data-opt="' + oi + '" aria-label="Remove option">×</button>' +
+          '<span class="opt-preview" data-idx="' + i + '" data-opt="' + oi + '" data-math="' + esc(opt) + '"></span>' +
+        '</div>';
+      }).join('');
+      body = '<div class="opts">' + opts +
+        '<div class="opts__foot">' +
+          '<button class="btn btn--quiet btn--sm" type="button" data-act="add-opt" data-idx="' + i + '">+ Add option</button>' +
+          '<span class="field__hint">Select the radio next to the correct option.</span>' +
+        '</div></div>';
+    } else {
+      body = '<label class="q-mini" style="margin-left:0;">Answer space (lines) ' +
+        '<input class="input input--mini" type="number" min="1" max="14" step="1" data-field="maxLines" data-idx="' + i + '" value="' + esc(q.maxLines) + '"></label>';
+    }
+    return '<div class="q-card" data-idx="' + i + '">' + head + text + body + '</div>';
+  }
+
+  function renderQuestions() {
+    var host = qs('#ba-questions');
+    host.innerHTML = qbuild.length
+      ? qbuild.map(questionCard).join('')
+      : '<div class="empty"><p>No questions yet. Use the buttons below to add MCQ, short, long or steps questions.</p></div>';
+    if (window.MathText) MathText.render(host);
+    updateTotal();
+  }
+
+  function updatePreview(node, value) {
+    if (!node) return;
+    node.removeAttribute('data-math-done');
+    node.setAttribute('data-math', value);
+    if (window.MathText) MathText.render(node.parentElement || node);
+  }
+
+  function onQuestionsInput(e) {
+    var t = e.target;
+    var idxAttr = t.getAttribute && t.getAttribute('data-idx');
+    if (idxAttr === null || idxAttr === undefined) return;
+    var q = qbuild[Number(idxAttr)];
+    if (!q) return;
+    var field = t.getAttribute('data-field');
+    if (field === 'text') {
+      q.text = t.value;
+      updatePreview(t.parentElement.querySelector('.q-preview[data-idx="' + idxAttr + '"]'), t.value);
+    }
+    else if (field === 'marks') { q.marks = (t.value === '' ? '' : Number(t.value)); updateTotal(); }
+    else if (field === 'maxLines') q.maxLines = Number(t.value) || DEFAULT_LINES[q.type];
+    else if (field === 'opt') {
+      q.options[Number(t.getAttribute('data-opt'))] = t.value;
+      var row = t.closest('.opt-row');
+      if (row) updatePreview(row.querySelector('.opt-preview'), t.value);
+    }
+    else if (field === 'correct') q.correctIndex = Number(t.value);
+    // ---- steps fields ----
+    else if (field === 'step-text') {
+      var si = Number(t.getAttribute('data-step'));
+      if (q.steps && q.steps[si]) q.steps[si].text = t.value;
+      var row = t.closest('.step-row');
+      if (row) updatePreview(row.querySelector('.step-row__preview'), t.value);
+    }
+    else if (field === 'step-distractor') {
+      var sd = Number(t.getAttribute('data-step'));
+      if (q.steps && q.steps[sd]) q.steps[sd].distractor = !!t.checked;
+    }
+    else if (field === 'grading-mode') {
+      q.gradingMode = (t.value === 'auto') ? 'auto' : 'manual';
+      var knobs = t.closest('.steps-grading').querySelector('.steps-knobs');
+      if (knobs) knobs.hidden = (q.gradingMode !== 'auto');
+    }
+    else if (field === 'ordered') q.ordered = !!t.checked;
+    else if (field === 'perStep') q.perStep = t.value;
+    else if (field === 'penalty') q.penalty = t.value;
+  }
+
+  function onQuestionsClick(e) {
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!t) return;
+    var i = Number(t.getAttribute('data-idx'));
+    var act = t.getAttribute('data-act');
+    if (act === 'rm-q') { qbuild.splice(i, 1); renderQuestions(); }
+    else if (act === 'add-step') { qbuild[i].steps.push({ text: '', distractor: false }); renderQuestions(); }
+    else if (act === 'rm-step') {
+      var qs_ = qbuild[i];
+      if (qs_.steps.length > 1) qs_.steps.splice(Number(t.getAttribute('data-step')), 1);
+      renderQuestions();
+    }
+    else if (act === 'step-up') {
+      var su = Number(t.getAttribute('data-step')), arrU = qbuild[i].steps;
+      if (su > 0) { var tmp = arrU[su - 1]; arrU[su - 1] = arrU[su]; arrU[su] = tmp; }
+      renderQuestions();
+    }
+    else if (act === 'step-down') {
+      var sdn = Number(t.getAttribute('data-step')), arrD = qbuild[i].steps;
+      if (sdn < arrD.length - 1) { var tmp2 = arrD[sdn + 1]; arrD[sdn + 1] = arrD[sdn]; arrD[sdn] = tmp2; }
+      renderQuestions();
+    }
+    else if (act === 'add-opt') { qbuild[i].options.push(''); renderQuestions(); }
+    else if (act === 'rm-opt') {
+      var q = qbuild[i];
+      if (q.options.length <= 2) { toast('An MCQ needs at least 2 options.', 'bad'); return; }
+      var oi = Number(t.getAttribute('data-opt'));
+      q.options.splice(oi, 1);
+      if (q.correctIndex >= q.options.length) q.correctIndex = q.options.length - 1;
+      else if (q.correctIndex > oi) q.correctIndex -= 1;
+      renderQuestions();
+    }
+  }
+
+  function validateBuild() {
+    if (!qs('#ba-title').value.trim()) return 'Add a paper title.';
+    if (!qs('#ba-class').value) return 'Choose a class.';
+    if (!qbuild.length) return 'Add at least one question.';
+    for (var i = 0; i < qbuild.length; i++) {
+      var q = qbuild[i], n = 'Q' + (i + 1) + ': ';
+      if (!String(q.text).trim()) return n + 'the question text is empty.';
+      if (!(Number(q.marks) > 0)) return n + 'set the marks (greater than 0).';
+      if (q.type === 'mcq') {
+        var filled = q.options.filter(function (o) { return String(o).trim() !== ''; });
+        if (filled.length < 2) return n + 'an MCQ needs at least 2 filled options.';
+        if (String(q.options[Number(q.correctIndex)] || '').trim() === '') return n + 'the option marked correct is empty.';
+      } else if (q.type === 'steps') {
+        var withText = (q.steps || []).filter(function (s) { return String(s.text).trim() !== ''; });
+        if (!withText.length) return n + 'add at least one step.';
+        var real = withText.filter(function (s) { return !s.distractor; });
+        if (!real.length) return n + 'at least one step must be real (not a distractor).';
+      }
+    }
+    return null;
+  }
+
+  function readPaper() {
+    return {
+      level: qs('#ba-level').value,
+      classLevel: Number(qs('#ba-class').value),
+      subject: qs('#ba-subject').value.trim(),
+      chapterRef: qs('#ba-chapter').value.trim(),
+      title: qs('#ba-title').value.trim(),
+      description: qs('#ba-desc').value.trim(),
+      instructions: (qs('#ba-instructions') ? qs('#ba-instructions').value.trim() : ''),
+      questions: qbuild.map(function (q) {
+        var out = { type: q.type, text: String(q.text).trim(), marks: Number(q.marks) || 0 };
+        if (q.type === 'mcq') {
+          // Drop empty option boxes, keeping the correct one aligned.
+          var kept = [], correct = 0;
+          q.options.forEach(function (o, oi) {
+            var s = String(o).trim();
+            if (s !== '') { if (oi === Number(q.correctIndex)) correct = kept.length; kept.push(s); }
+          });
+          out.options = kept;
+          out.correctIndex = correct;
+        } else if (q.type === 'steps') {
+          // Drop empty step rows; authoring order = the correct order, so no
+          // correctOrder is sent (the backend defaults to it).
+          out.steps = (q.steps || [])
+            .filter(function (s) { return String(s.text).trim() !== ''; })
+            .map(function (s) { return { text: String(s.text).trim(), distractor: !!s.distractor }; });
+          var grading = { mode: (q.gradingMode === 'auto') ? 'auto' : 'manual' };
+          if (q.ordered === false) grading.ordered = false;
+          if (grading.mode === 'auto') {
+            if (q.perStep !== '' && Number(q.perStep) > 0) grading.perStep = Number(q.perStep);
+            if (q.penalty !== '' && Number(q.penalty) >= 0) grading.distractorPenalty = Number(q.penalty);
+          }
+          out.grading = grading;
+        } else {
+          out.maxLines = Number(q.maxLines) || DEFAULT_LINES[q.type];
+        }
+        return out;
+      })
+    };
+  }
+
+  function updateTotal() {
+    var t = paperTotals();
+    qs('#ba-total').textContent = t.count + ' question' + (t.count === 1 ? '' : 's') + ' · ' + t.marks + ' marks';
+  }
+
+  function isMathField(el) {
+    if (!el) return false;
+    if (el.classList && el.classList.contains('q-text')) return true;             // question stem
+    var f = el.getAttribute && el.getAttribute('data-field');
+    return f === 'opt' || f === 'step-text';                                       // options / steps
+  }
+
+  function insertTex(field, tex) {
+    if (!field) return;
+    var start = field.selectionStart == null ? field.value.length : field.selectionStart;
+    var end = field.selectionEnd == null ? start : field.selectionEnd;
+    var val = field.value;
+    var sel = val.substring(start, end);
+    var mark = tex.indexOf('$1');
+    var snippet, caret;
+    if (mark >= 0) {
+      snippet = tex.slice(0, mark) + sel + tex.slice(mark + 2);   // drop $1, keep any selected text there
+      caret = start + mark + sel.length;                          // cursor lands right after the selection
+    } else {
+      snippet = tex;
+      caret = start + snippet.length;
+    }
+    field.value = val.substring(0, start) + snippet + val.substring(end);
+    field.focus();
+    try { field.setSelectionRange(caret, caret); } catch (e) {}
+    field.dispatchEvent(new Event('input', { bubbles: true }));   // update state + live preview
+  }
+
+  function wireMathPalette(qhost) {
+    var palette = qs('#ba-math-palette');
+    if (!palette) return;
+    // Remember the last math field the user was editing.
+    qhost.addEventListener('focusin', function (e) { if (isMathField(e.target)) lastMathField = e.target; });
+    // mousedown (not click) so the button press doesn't steal focus from the field.
+    palette.addEventListener('mousedown', function (e) {
+      var b = e.target.closest('button[data-tex],button[data-mf]');
+      if (!b) return;
+      e.preventDefault();
+      if (!lastMathField || !document.contains(lastMathField)) {
+        toast('Click inside a question, option or step box first.', 'bad');
+        return;
+      }
+      if (b.hasAttribute('data-mf')) { openMathEditor(lastMathField); return; }
+      insertTex(lastMathField, b.getAttribute('data-tex'));
+    });
+  }
+
+  function loadPapers() {
+    var host = qs('#ba-papers-list');
+    host.innerHTML = '<p class="muted">Loading…</p>';
+    authed('teacher/papers', {})
+      .then(function (data) { renderPapers((data && data.papers) || []); })
+      .catch(function (e) { host.innerHTML = ''; fail(e, 'Could not load papers.'); });
+  }
+
+  function renderPapers(list) {
+    var host = qs('#ba-papers-list');
+    if (!list.length) { host.innerHTML = '<div class="empty"><p>No papers yet. Build one above.</p></div>'; return; }
+    var order = { Active: 0, Draft: 1, Past: 2 };
+    list.sort(function (a, b) {
+      return (order[a.status] == null ? 9 : order[a.status]) - (order[b.status] == null ? 9 : order[b.status])
+        || String(a.level).localeCompare(String(b.level));
+    });
+    host.innerHTML = list.map(function (p) {
+      var pill = '<span class="pp-pill pp-pill--' + String(p.status).toLowerCase() + '">' + esc(p.status) + '</span>';
+      var act = (p.status === 'Active')
+        ? '<span class="muted" style="font-size:.8125rem;">Live now</span>'
+        : '<button class="btn btn--secondary btn--sm" type="button" data-act="activate-paper" data-paper="' + esc(p.paperId) + '">Activate</button>';
+      var editBtn = '<button class="btn btn--quiet btn--sm" type="button" data-act="edit-paper" data-paper="' + esc(p.paperId) + '">Edit</button>';
+      var meta = [esc(p.level), 'Class ' + esc(p.classLevel), (p.subject ? esc(p.subject) : ''), esc(p.questionCount) + ' Q', esc(p.totalMarks) + ' marks']
+        .filter(function (x) { return x; }).join(' · ');
+      return '<div class="pp-row">' +
+        '<div class="pp-row__main"><div class="pp-row__title">' + esc(p.title) + '</div>' +
+        '<div class="cell-sub">' + meta + '</div></div>' +
+        '<div class="pp-row__side">' + pill + editBtn + act + '</div></div>';
+    }).join('');
+  }
+
+  function onPapersClick(e) {
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!t) return;
+    var act = t.getAttribute('data-act');
+    if (act === 'edit-paper') return loadPaperForEdit(t.getAttribute('data-paper'));
+    if (act === 'activate-paper') {
+      busy(t, true);
+      authed('teacher/activatePaper', { paperId: t.getAttribute('data-paper') })
+        .then(function () { toast('Paper activated.', 'ok'); loadPapers(); })
+        .catch(function (e2) { busy(t, false); fail(e2, 'Could not activate the paper.'); });
+    }
+  }
+
+  function loadPaperForEdit(paperId) {
+    authed('teacher/getPaperForEdit', { paperId: paperId })
+      .then(function (p) {
+        editingPaperId = p.paperId;
+        qs('#ba-level').value = p.level || 'L1';
+        qs('#ba-class').value = String(p.classLevel || 8);
+        qs('#ba-subject').value = p.subject || '';
+        qs('#ba-chapter').value = p.chapterRef || '';
+        qs('#ba-title').value = p.title || '';
+        qs('#ba-desc').value = p.description || '';
+        if (qs('#ba-instructions')) qs('#ba-instructions').value = p.instructions || '';
+        qseq = 0;
+        qbuild = (p.questions || []).map(paperQToBuilder);
+        renderQuestions();
+        // editing-mode UI
+        qs('#ba-edit-banner').hidden = false;
+        qs('#ba-edit-title').textContent = p.title || '';
+        qs('#ba-edit-status').textContent = p.status ? ('· ' + p.status) : '';
+        qs('#ba-save-draft').textContent = 'Save changes';
+        qs('#ba-save-activate').textContent = (p.status === 'Active') ? 'Save (stays live)' : 'Save & activate';
+        var form = qs('#ba-form');
+        if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast('Loaded “' + (p.title || 'paper') + '” for editing.', 'ok');
+      })
+      .catch(function (e) { fail(e, 'Could not load the paper for editing.'); });
+  }
+
+  function paperQToBuilder(q) {
+    qseq += 1;
+    var b = { _id: 'q' + qseq, type: q.type, text: String(q.text || ''), marks: Number(q.marks) || 0 };
+    if (q.type === 'mcq') {
+      b.options = Array.isArray(q.options) ? q.options.slice() : ['', ''];
+      b.correctIndex = (q.correctIndex == null) ? 0 : Number(q.correctIndex);
+    } else if (q.type === 'steps') {
+      // Stored steps are in authoring order = correct order; distractors flagged.
+      b.steps = (q.steps || []).map(function (s) { return { text: String(s.text || ''), distractor: !!s.distractor }; });
+      if (!b.steps.length) b.steps = [{ text: '', distractor: false }];
+      b.gradingMode = (q.grading && q.grading.mode === 'auto') ? 'auto' : 'manual';
+      b.ordered = !(q.grading && q.grading.ordered === false);
+      b.perStep = (q.grading && q.grading.perStep != null) ? String(q.grading.perStep) : '';
+      b.penalty = (q.grading && q.grading.distractorPenalty != null) ? String(q.grading.distractorPenalty) : '';
+    } else {
+      b.maxLines = Number(q.maxLines) || DEFAULT_LINES[q.type];
+    }
+    return b;
+  }
+
+  function exitEditMode() {
+    editingPaperId = null;
+    qs('#ba-edit-banner').hidden = true;
+    qs('#ba-save-draft').textContent = 'Save as draft';
+    qs('#ba-save-activate').textContent = 'Save & activate';
+  }
+
+  function savePaper(activate, button) {
+    var err = validateBuild();
+    if (err) { toast(err, 'bad'); return; }
+    var paper = readPaper();
+    busy(button, true);
+
+    if (editingPaperId) {
+      // EDIT mode: overwrite the existing paper in place. Editing an Active
+      // paper is shown to students immediately (same paperId).
+      var pid = editingPaperId;
+      authed('teacher/updatePaper', { paperId: pid, paper: paper })
+        .then(function (res) {
+          if (activate && qs('#ba-save-activate').textContent.indexOf('activate') !== -1) {
+            return authed('teacher/activatePaper', { paperId: pid }).then(function () { return res; });
+          }
+          return res;
+        })
+        .then(function (res) {
+          toast('Changes saved.' + (res && res.submissionsAffected ? ' Note: ' + res.submissionsAffected + ' student(s) already submitted this paper.' : ''), 'ok');
+          resetBuilder();
+          loadPapers();
+        })
+        .catch(function (e) { fail(e, 'Could not save the changes.'); })
+        .then(function () { busy(button, false); });
+      return;
+    }
+
+    authed('teacher/createPaper', { paper: paper })
+      .then(function (res) {
+        if (activate && res && res.paperId) {
+          return authed('teacher/activatePaper', { paperId: res.paperId }).then(function () { return res; });
+        }
+        return res;
+      })
+      .then(function () {
+        toast(activate ? 'Paper created and activated.' : 'Paper saved as a draft.', 'ok');
+        resetBuilder();
+        loadPapers();
+      })
+      .catch(function (e) { fail(e, 'Could not save the paper.'); })
+      .then(function () { busy(button, false); });
+  }
+
+  function resetBuilder() {
+    qbuild = [];
+    ['#ba-title', '#ba-subject', '#ba-chapter', '#ba-desc', '#ba-instructions'].forEach(function (s) { qs(s).value = ''; });
+    exitEditMode();
+    renderQuestions();
+  }
+
+  function wirePapers() {
+    wireMathModal();
+    var form = qs('#ba-form');
+    if (!form) return;
+    var csel = qs('#ba-class');
+    for (var c = 1; c <= 12; c++) {
+      var o = document.createElement('option');
+      o.value = String(c); o.textContent = 'Class ' + c;
+      if (c === 8) o.selected = true;
+      csel.appendChild(o);
+    }
+    qs('#ba-add-mcq').addEventListener('click', function () { qbuild.push(newQ('mcq')); renderQuestions(); });
+    qs('#ba-add-short').addEventListener('click', function () { qbuild.push(newQ('short')); renderQuestions(); });
+    qs('#ba-add-long').addEventListener('click', function () { qbuild.push(newQ('long')); renderQuestions(); });
+    qs('#ba-add-steps').addEventListener('click', function () { qbuild.push(newQ('steps')); renderQuestions(); });
+    qs('#ba-save-draft').addEventListener('click', function (e) { savePaper(false, e.currentTarget); });
+    qs('#ba-save-activate').addEventListener('click', function (e) { savePaper(true, e.currentTarget); });
+    var qhost = qs('#ba-questions');
+    qhost.addEventListener('input', onQuestionsInput);
+    qhost.addEventListener('change', onQuestionsInput);
+    qhost.addEventListener('click', onQuestionsClick);
+    wireMathPalette(qhost);
+    qs('#ba-papers-list').addEventListener('click', onPapersClick);
+    qs('#ba-edit-banner').addEventListener('click', function (e) {
+      if (e.target.closest('[data-act="ba-cancel-edit"]')) resetBuilder();
+    });
+    renderQuestions();
+  }
+
+  function stripDollars(t) { t = String(t || ''); return (t.length > 1 && t[0] === '$' && t[t.length - 1] === '$') ? t.slice(1, -1) : t; }
+
+  function openMathEditor(field) {
+    if (!window.MathfieldElement) { toast('Equation editor is still loading — try again in a moment.', 'bad'); return; }
+    var mf = qs('#mf-field'); var modal = qs('#mf-modal');
+    mfTarget = field;
+    var val = field.value;
+    var s = field.selectionStart, e = field.selectionEnd;
+    if (s == null || s === e) { s = 0; e = val.length; }        // no selection → whole field
+    mfStart = s; mfEnd = e;
+    // A stem (question text) mixes prose + math, so we wrap in $…$. Options/steps
+    // are pure math, so we insert raw LaTeX.
+    mfWrap = !!(field.classList && field.classList.contains('q-text'));
+    var seed = stripDollars(val.substring(s, e));
+    try { mf.value = seed; } catch (er) {}
+    modal.hidden = false;
+    setTimeout(function () { try { mf.focus(); } catch (er) {} }, 30);
+  }
+
+  function closeMathEditor() { qs('#mf-modal').hidden = true; mfTarget = null; }
+
+  function insertFromEditor() {
+    if (!mfTarget) { closeMathEditor(); return; }
+    var latex = '';
+    try { latex = qs('#mf-field').value || ''; } catch (e) {}
+    latex = latex.trim();
+    var out = mfWrap ? ('$' + latex + '$') : latex;
+    var v = mfTarget.value;
+    mfTarget.value = v.substring(0, mfStart) + out + v.substring(mfEnd);
+    var caret = mfStart + out.length;
+    try { mfTarget.focus(); mfTarget.setSelectionRange(caret, caret); } catch (e) {}
+    mfTarget.dispatchEvent(new Event('input', { bubbles: true }));
+    closeMathEditor();
+  }
+
+  function wireMathModal() {
+    var modal = qs('#mf-modal'); if (!modal || modal.__wired) return; modal.__wired = true;
+    qs('#mf-insert').addEventListener('click', insertFromEditor);
+    qs('#mf-cancel').addEventListener('click', closeMathEditor);
+    modal.querySelector('[data-mf-close]').addEventListener('click', closeMathEditor);
+    document.addEventListener('keydown', function (e) { if (!modal.hidden && e.key === 'Escape') closeMathEditor(); });
+  }
+
+  function loadGrading() {
+    grShowStage('papers');
+    var host = qs('#gr-papers-list');
+    host.innerHTML = '<p class="muted">Loading…</p>';
+    authed('teacher/papers', {})
+      .then(function (data) { renderGrPapers((data && data.papers) || []); })
+      .catch(function (e) { host.innerHTML = ''; fail(e, 'Could not load papers.'); });
+  }
+
+  function renderGrPapers(list) {
+    var host = qs('#gr-papers-list');
+    if (!list.length) { host.innerHTML = '<div class="empty"><h2>No papers yet</h2><p>Create a paper in Boss Papers first.</p></div>'; return; }
+    var order = { Active: 0, Draft: 1, Past: 2 };
+    list.sort(function (a, b) {
+      return (order[a.status] == null ? 9 : order[a.status]) - (order[b.status] == null ? 9 : order[b.status]);
+    });
+    host.innerHTML = list.map(function (p) {
+      var pill = '<span class="pp-pill pp-pill--' + String(p.status).toLowerCase() + '">' + esc(p.status) + '</span>';
+      var meta = [esc(p.level), 'Class ' + esc(p.classLevel), (p.subject ? esc(p.subject) : ''), esc(p.questionCount) + ' Q', esc(p.totalMarks) + ' marks']
+        .filter(function (x) { return x; }).join(' · ');
+      return '<div class="pp-row"><div class="pp-row__main"><div class="pp-row__title">' + esc(p.title) + '</div>' +
+        '<div class="cell-sub">' + meta + '</div></div>' +
+        '<div class="pp-row__side">' + pill +
+        '<button class="btn btn--secondary btn--sm" data-act="gr-open-subs" data-paper="' + esc(p.paperId) + '" data-title="' + esc(p.title) + '">View submissions</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function openSubs(paperId, title) {
+    grState.paperId = paperId;
+    grState.paperTitle = title || '';
+    grShowStage('subs');
+    qs('#gr-subs-title').textContent = title || 'Submissions';
+    qs('#gr-subs-sub').textContent = '';
+    var host = qs('#gr-subs-list');
+    host.innerHTML = '<p class="muted">Loading…</p>';
+    authed('teacher/submissions', { paperId: paperId })
+      .then(function (data) { renderSubs((data && data.submissions) || []); })
+      .catch(function (e) { host.innerHTML = ''; fail(e, 'Could not load submissions.'); });
+  }
+
+  function renderSubs(list) {
+    var host = qs('#gr-subs-list');
+    var sub = qs('#gr-subs-sub');
+    if (sub) sub.textContent = list.length + ' submission' + (list.length === 1 ? '' : 's');
+    if (!list.length) { host.innerHTML = '<div class="empty"><h2>No submissions yet</h2><p>No student has submitted this paper.</p></div>'; return; }
+    host.innerHTML = list.map(function (s) {
+      var st = String(s.status || '').toLowerCase();
+      var pill = '<span class="gr-pill gr-pill--' + st + '">' + esc(s.status) + '</span>';
+      var isGraded = (s.status === 'Graded' || s.status === 'Rechecked');
+      var marks = (s.awardedMarks == null) ? '' : ('<span class="cell-sub">' + esc(s.awardedMarks) + ' / ' + esc(s.totalMarks) + '</span>');
+      var when = s.submittedAt ? ('<div class="cell-sub">Submitted ' + esc(s.submittedAt) + '</div>') : '';
+      var btn = '<button class="btn ' + (isGraded ? 'btn--quiet' : 'btn--primary') + ' btn--sm" data-act="gr-open-grade" data-sub="' + esc(s.submissionId) + '">' + (isGraded ? 'Review / edit' : 'Grade') + '</button>';
+      return '<div class="pp-row"><div class="pp-row__main"><div class="pp-row__title">' + esc(s.studentName || 'Student') +
+        ' <span class="cell-sub">' + esc(s.studentId) + '</span></div>' + when + '</div>' +
+        '<div class="pp-row__side">' + pill + marks + btn + '</div></div>';
+    }).join('');
+  }
+
+  function openGrade(submissionId) {
+    grShowStage('grade');
+    qs('#gr-grade-title').textContent = 'Grade paper';
+    qs('#gr-grade-sub').textContent = '';
+    var host = qs('#gr-grade-host');
+    host.innerHTML = '<p class="muted">Loading…</p>';
+    authed('teacher/submissionForGrading', { paperId: grState.paperId, submissionId: submissionId })
+      .then(function (data) { renderGradeForm(data); })
+      .catch(function (e) { host.innerHTML = ''; fail(e, 'Could not open this submission.'); });
+  }
+
+  function renderGradeForm(d) {
+    grState.submissionId = d.submissionId;
+    grState.total = Number(d.totalMarks) || 0;
+    qs('#gr-grade-title').textContent = d.studentName || 'Student';
+    qs('#gr-grade-sub').textContent = esc(d.studentId) + ' · ' + (d.paperTitle || '') + ' · ' + grState.total + ' marks total' +
+      (d.gradedAt ? ' · last graded ' + d.gradedAt : '');
+    qs('#gr-overall').value = d.overallFeedback || '';
+    qs('#gr-grade-host').innerHTML = (d.items || []).map(grQuestionCard).join('');
+    if (window.MathText) MathText.render(qs('#gr-grade-host'));
+    grUpdateRunning();
+  }
+
+  function grQuestionCard(item, i) {
+    var typeLabel = String(item.type || '').toUpperCase();
+    var ansHtml;
+    var correctHtml = '';
+    if (item.type === 'steps') {
+      var your = (item.yourSteps || []).map(function (s) {
+        return '<li class="gr-steps__item' + (s.distractor ? ' gr-steps__item--bad' : '') + '">' +
+          '<span data-math="' + esc(s.text) + '"></span>' +
+          (s.distractor ? '<span class="gr-steps__tag">distractor left in</span>' : '') +
+        '</li>';
+      }).join('');
+      var corr = (item.correctSteps || []).map(function (s) {
+        return '<li class="gr-steps__item"><span data-math="' + esc(s.text) + '"></span></li>';
+      }).join('');
+      ansHtml =
+        '<div class="gr-steps">' +
+          '<div class="gr-steps__col"><span class="gr-steps__label">Student’s sequence</span>' +
+            '<ol class="gr-steps__list">' + (your || '<li class="gr-steps__item">No steps kept</li>') + '</ol></div>' +
+          (corr ? '<div class="gr-steps__col"><span class="gr-steps__label">Correct sequence</span><ol class="gr-steps__list">' + corr + '</ol></div>' : '') +
+        '</div>';
+      // Auto-grade suggestion (teacher can accept or override).
+      if (item.suggestedMarks != null) {
+        var det = item.suggestedDetail || {};
+        correctHtml =
+          '<div class="gr-suggest">' +
+            '<span class="gr-suggest__pill">Auto suggestion: <strong>' + esc(item.suggestedMarks) + '</strong> / ' + esc(item.marks) + '</span>' +
+            '<span class="gr-suggest__detail">' + esc(det.correctSteps) + '/' + esc(det.totalSteps) + ' in order' +
+              (det.distractorsLeft ? ', −' + esc(det.penalty) + ' for ' + esc(det.distractorsLeft) + ' distractor(s)' : '') + '</span>' +
+            '<button class="btn btn--quiet btn--sm" type="button" data-act="gr-use-suggestion" data-qid="' + esc(item.qId) + '" data-val="' + esc(item.suggestedMarks) + '">Use suggestion</button>' +
+          '</div>';
+      }
+    } else if (item.type === 'mcq') {
+      var opts = item.options || [];
+      var idx = (item.yourAnswer === '' || item.yourAnswer == null) ? null : Number(item.yourAnswer);
+      ansHtml = (idx == null)
+        ? '<div class="gr-q__ans gr-q__ans--empty">No answer given</div>'
+        : '<div class="gr-q__ans"><strong>' + grLetter(idx) + '.</strong> ' + esc(opts[idx] != null ? opts[idx] : '') + '</div>';
+      if (item.correctIndex != null && opts[item.correctIndex] != null) {
+        correctHtml = '<div class="gr-q__correct">✓ Correct: ' + grLetter(item.correctIndex) + '. ' + esc(opts[item.correctIndex]) + '</div>';
+      }
+    } else {
+      var val = (item.yourAnswer == null || item.yourAnswer === '') ? '' : String(item.yourAnswer);
+      ansHtml = val ? '<div class="gr-q__ans">' + esc(val) + '</div>' : '<div class="gr-q__ans gr-q__ans--empty">No answer given</div>';
+    }
+
+    // Pre-fill: keep an existing mark; otherwise auto-suggest MCQ from the
+    // correct index (grader can still override). Written answers start blank.
+    var marksVal = (item.awardedMarks == null) ? '' : item.awardedMarks;
+    if (item.type === 'mcq' && item.awardedMarks == null && item.yourAnswer !== '' && item.yourAnswer != null && item.correctIndex != null) {
+      marksVal = (Number(item.yourAnswer) === Number(item.correctIndex)) ? item.marks : 0;
+    }
+    // Steps: start from the auto suggestion if the grader hasn't set a mark yet.
+    if (item.type === 'steps' && item.awardedMarks == null && item.suggestedMarks != null) {
+      marksVal = item.suggestedMarks;
+    }
+
+    var mcqQuick = (item.type === 'mcq')
+      ? '<div class="gr-mcqmark"><button class="btn btn--quiet btn--sm" type="button" data-act="gr-mcq-full">Full</button>' +
+        '<button class="btn btn--quiet btn--sm" type="button" data-act="gr-mcq-zero">0</button></div>'
+      : '';
+
+    return '<div class="gr-q" data-qid="' + esc(item.qId) + '">' +
+        '<div class="gr-q__head"><span class="gr-q__num">Q' + (i + 1) + '</span>' +
+          '<span class="gr-q__type">' + esc(typeLabel) + '</span>' +
+          '<span class="cell-sub" style="margin-left:auto;">out of ' + esc(item.marks) + '</span></div>' +
+        (item.type === 'steps'
+          ? '<p class="gr-q__text" data-math="' + esc(item.text) + '"></p>'
+          : '<p class="gr-q__text">' + esc(item.text) + '</p>') +
+        '<span class="gr-q__label">Student\'s answer</span>' + ansHtml + correctHtml +
+        '<div class="gr-q__grade">' +
+          '<div class="gr-q__marksfield"><span class="gr-q__label">Marks</span>' +
+            '<input class="input gr-marks-input" type="number" min="0" max="' + esc(item.marks) + '" step="0.5" data-qid="' + esc(item.qId) + '" value="' + esc(marksVal) + '"></div>' +
+          mcqQuick +
+          '<div class="gr-q__corrfield"><span class="gr-q__label">Feedback / correction</span>' +
+            '<textarea class="input gr-corr-input" rows="2" data-corr="' + esc(item.qId) + '" placeholder="What was wrong / why marks were cut (optional)">' + esc(item.correction || '') + '</textarea></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function grUpdateRunning() {
+    var sum = 0;
+    qsa('#gr-grade-host .gr-marks-input').forEach(function (mi) {
+      var v = Number(mi.value) || 0;
+      var max = Number(mi.getAttribute('max')) || 0;
+      if (v < 0) v = 0;
+      if (v > max) v = max;
+      sum += v;
+    });
+    sum = Math.round(sum * 10) / 10;
+    var el = qs('#gr-running');
+    if (el) el.textContent = sum + ' / ' + (grState.total || 0);
+  }
+
+  function grLetter(i) { return String.fromCharCode(65 + Number(i)); }
+
+  function submitGrade(finalize, button) {
+    if (!grState.submissionId) return;
+    var grades = {};
+    qsa('#gr-grade-host .gr-q').forEach(function (card) {
+      var qid = card.getAttribute('data-qid');
+      var mi = card.querySelector('.gr-marks-input');
+      var ci = card.querySelector('.gr-corr-input');
+      var m = (mi && mi.value !== '') ? Number(mi.value) : 0;
+      grades[qid] = { marks: m, correction: ci ? ci.value : '' };
+    });
+    var overall = qs('#gr-overall').value;
+    busy(button, true);
+    authed('teacher/gradeSubmission', {
+      submissionId: grState.submissionId, grades: grades, overallFeedback: overall, finalize: finalize
+    })
+      .then(function () {
+        toast(finalize ? 'Result released to the student.' : 'Draft saved (not shown to the student).', 'ok');
+        openSubs(grState.paperId, grState.paperTitle);
+      })
+      .catch(function (e) { fail(e, 'Could not save the grade.'); })
+      .then(function () { busy(button, false); });
+  }
+
+  function grShowStage(stage) {
+    qs('#gr-stage-papers').hidden = stage !== 'papers';
+    qs('#gr-stage-subs').hidden = stage !== 'subs';
+    qs('#gr-stage-grade').hidden = stage !== 'grade';
+  }
+
+  function onGradingClick(e) {
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!t) return;
+    var act = t.dataset.act;
+    if (act === 'gr-refresh-papers') return loadGrading();
+    if (act === 'gr-open-subs') return openSubs(t.getAttribute('data-paper'), t.getAttribute('data-title'));
+    if (act === 'gr-back-papers') return grShowStage('papers');
+    if (act === 'gr-refresh-subs') return openSubs(grState.paperId, grState.paperTitle);
+    if (act === 'gr-open-grade') return openGrade(t.getAttribute('data-sub'));
+    if (act === 'gr-back-subs') return grShowStage('subs');
+    if (act === 'gr-use-suggestion') {
+      var card = t.closest('.gr-q');
+      var mi2 = card ? card.querySelector('.gr-marks-input') : null;
+      if (mi2) { mi2.value = t.getAttribute('data-val'); grUpdateRunning(); }
+      return;
+    }
+    if (act === 'gr-mcq-full' || act === 'gr-mcq-zero') {
+      var card = t.closest('.gr-q');
+      var mi = card && card.querySelector('.gr-marks-input');
+      if (mi) { mi.value = (act === 'gr-mcq-full') ? mi.getAttribute('max') : '0'; grUpdateRunning(); }
+      return;
+    }
+    if (act === 'gr-save-draft') return submitGrade(false, t);
+    if (act === 'gr-release') return submitGrade(true, t);
+  }
+
+  function paperTotals() {
+    var marks = 0;
+    qbuild.forEach(function (q) { marks += Number(q.marks) || 0; });
+    return { count: qbuild.length, marks: marks };
+  }
+
+  function badgeFor(status) {
+    switch (normalizeStatus(status)) {
+      case 'Active': return 'badge--ok';
+      case 'Suspended': return 'badge--bad';
+      case 'Expired': return 'badge--neutral';
+      default: return 'badge--warn';
+    }
+  }
+
+  function normalizeStatus(status) {
+    var raw = String(status || '').trim();
+    // Statuses are read trimmed and case-insensitively throughout the backend,
+    // so a hand-typed "active " must display as Active here too.
+    for (var i = 0; i < STATUSES.length; i++) {
+      if (STATUSES[i].toLowerCase() === raw.toLowerCase()) return STATUSES[i];
+    }
+    return raw || 'Pending';
+  }
+
+  function ago(iso) {
+    var then = new Date(iso).getTime();
+    if (!then || isNaN(then)) return 'unknown';
+    var mins = Math.floor((Date.now() - then) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' minute' + (mins === 1 ? '' : 's') + ' ago';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + ' hour' + (hours === 1 ? '' : 's') + ' ago';
+    var days = Math.floor(hours / 24);
+    return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+  }
+
+  function wireGrading() {
+    var panel = qs('[data-panel="grading"]');
+    if (!panel) return;
+    panel.addEventListener('click', onGradingClick);
+    panel.addEventListener('input', function (e) {
+      if (e.target.classList && e.target.classList.contains('gr-marks-input')) grUpdateRunning();
+    });
+  }
+
+  function qs(sel) { return document.querySelector(sel); }
+
+  function qsa(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function toast(message, kind) {
+    var host = qs('#toasts');
+    var el = document.createElement('div');
+    el.className = 'toast' + (kind ? ' toast--' + kind : '');
+    el.textContent = message;
+    host.appendChild(el);
+    setTimeout(function () { el.remove(); }, kind === 'bad' ? 6000 : 4000);
+  }
+
+  function busy(button, isBusy) {
+    if (!button) return;
+    button.disabled = isBusy;
+    button.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  }
+
+  function call(operation, params) {
+    var body = { operation: operation, apiKey: API_KEY };
+    Object.keys(params || {}).forEach(function (k) { body[k] = params[k]; });
+
+    return fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (payload) {
+      if (payload && payload.success) return payload.data || {};
+      var err = new Error((payload && payload.error && payload.error.message) || 'Something went wrong.');
+      err.code = payload && payload.error && payload.error.code;
+      throw err;
+    });
+  }
+
+  function authed(operation, params) {
+    var p = params || {};
+    p.token = getToken();
+    return call(operation, p);
+  }
+
+  function isAuthError(err) {
+    var c = err && err.code;
+    return c === 'AUTH_001' || c === 'AUTH_002' || c === 'AUTH_003' || c === 'AUTH_004';
+  }
+
+})();
+</script>
+</body>
+</html>

@@ -706,6 +706,7 @@ select.input { appearance: auto; background: var(--surface); }
   .mf-modal__actions { display:flex; justify-content:flex-end; gap:0.5rem; }
 
 </style>
+<link rel="stylesheet" href="assets/css/rechecking.css">
 </head>
 
 <body>
@@ -1400,7 +1401,13 @@ select.input { appearance: auto; background: var(--surface); }
     p.token = getToken();
     return call(operation, p);
   }
-
+window.WHAAdminRecheckBridge = {
+  authed: authed,
+  toast: toast,
+  fail: fail,
+  esc: esc,
+  busy: busy
+};
   function isAuthError(err) {
     var c = err && err.code;
     return c === 'AUTH_001' || c === 'AUTH_002' || c === 'AUTH_003' || c === 'AUTH_004';
@@ -3281,5 +3288,6 @@ select.input { appearance: auto; background: var(--surface); }
       </div>
     </div>
   </div>
+<script src="assets/js/admin-rechecking.js"></script>
 </body>
 </html>

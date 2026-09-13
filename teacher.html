@@ -758,7 +758,7 @@ select.input { appearance: auto; background: var(--surface); }
     if(!email||!pin){toast('Enter your email and PIN.','bad');return;} busy(btn,true);
     call('teacher/login',{email:email,pin:pin}).then(function(res){setToken(res.token);afterLogin(res);})
     .catch(function(e){toast((e&&e.message)||'Sign-in failed.','bad');}).then(function(){busy(btn,false);});}
-  function switchTab(name){['papers','grading'].forEach(function(n){var sec=qs('[data-panel="'+n+'"]');if(sec)sec.hidden=(n!==name);var tab=qs('.t-tab[data-tab="'+n+'"]');if(tab)tab.setAttribute('aria-current',n===name?'true':'false');});}
+  function switchTab(name){['papers','grading','rechecking'].forEach(function(n){var sec=qs('[data-panel="'+n+'"]');if(sec)sec.hidden=(n!==name);var tab=qs('.t-tab[data-tab="'+n+'"]');if(tab)tab.setAttribute('aria-current',n===name?'true':'false');});}
   function boot(){
     qs('#t-signin').addEventListener('click',function(e){signIn(e.currentTarget);});
     qs('#t-pin').addEventListener('keydown',function(e){if(e.key==='Enter')signIn(qs('#t-signin'));});
@@ -1623,7 +1623,13 @@ select.input { appearance: auto; background: var(--surface); }
     p.token = getToken();
     return call(operation, p);
   }
-
+window.WHATeacherRecheckBridge = {
+  authed: authed,
+  toast: toast,
+  fail: fail,
+  esc: esc,
+  busy: busy
+};
   function isAuthError(err) {
     var c = err && err.code;
     return c === 'AUTH_001' || c === 'AUTH_002' || c === 'AUTH_003' || c === 'AUTH_004';
@@ -1631,5 +1637,6 @@ select.input { appearance: auto; background: var(--surface); }
 
 })();
 </script>
+<script src="assets/js/teacher-rechecking.js"></script>
 </body>
 </html>

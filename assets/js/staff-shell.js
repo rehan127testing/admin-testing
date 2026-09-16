@@ -33,6 +33,23 @@
       return /(email|pin|password)/.test(hay) && visible(el);
     });
   }
+
+  function adminLoginVisible() {
+    const signIn = clickables().find(el => /^sign\s*in$/i.test(norm(el.textContent || el.value)) && visible(el));
+    if (!signIn) return false;
+
+    const inputs = Array.from(document.querySelectorAll('input')).filter(visible);
+    const hasEmail = inputs.some(el => {
+      const hay = [el.type,el.name,el.id,el.placeholder,el.autocomplete,el.getAttribute('aria-label')].join(' ').toLowerCase();
+      return /(email|username)/.test(hay);
+    });
+    const hasPassword = inputs.some(el => {
+      const hay = [el.type,el.name,el.id,el.placeholder,el.autocomplete,el.getAttribute('aria-label')].join(' ').toLowerCase();
+      return /(password|admin password)/.test(hay);
+    });
+
+    return hasEmail && hasPassword;
+  }
   function commonAncestor(elements) {
     if (!elements.length) return null;
     let n = elements[0];
@@ -211,7 +228,7 @@
   }
 
   function adminRoot() {
-    const matches = ADMIN_NAV.map(byText).filter(Boolean);
+    const matches = ADMIN_NAV.map(byText).filter(el => el && visible(el));
     if (matches.length < 5) return null;
     let root = commonAncestor(matches);
     if (!root) return null;
@@ -225,6 +242,7 @@
   }
 
   function ensureAdminEnhancements() {
+    if (adminLoginVisible()) return;
     if (!document.querySelector('link[data-wha-admin-themes]')) {
       const css=document.createElement('link'); css.rel='stylesheet'; css.href='assets/css/admin-themes.css'; css.dataset.whaAdminThemes='true'; document.head.appendChild(css);
     }
@@ -235,7 +253,11 @@
   }
 
   function setupAdmin() {
-    if (document.querySelector('.wha-admin-sidebar')) { ensureAdminEnhancements(); return true; }
+    if (adminLoginVisible()) return false;
+
+    const existing=document.querySelector('.wha-admin-sidebar');
+    if (existing && visible(existing)) { ensureAdminEnhancements(); return true; }
+
     const found=adminRoot(); if(!found)return false;
     found.root.classList.add('wha-staff-sidebar','wha-admin-sidebar');
     found.matches.forEach(el=>{
@@ -260,7 +282,35 @@
       const o=new MutationObserver(()=>requestAnimationFrame(refresh));
       o.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','style','aria-hidden']});
     } else {
-      let tries=0; const t=setInterval(()=>{tries++; if(setupAdmin()||tries>=40)clearInterval(t)},150); setupAdmin();
+      let adminQueued=false;
+
+      const refreshAdmin=()=>{
+        if(adminQueued)return;
+        adminQueued=true;
+        requestAnimationFrame(()=>{
+          adminQueued=false;
+
+          // Critical auth gate: do not initialize Admin themes/shell while the
+          // visible sign-in form is on screen, even if hidden dashboard markup
+          // already exists in the DOM.
+          if(adminLoginVisible()){
+            document.body.classList.remove('wha-admin-shell','wha-admin-overview-open');
+            return;
+          }
+
+          setupAdmin();
+        });
+      };
+
+      refreshAdmin();
+
+      const adminObserver=new MutationObserver(refreshAdmin);
+      adminObserver.observe(document.body,{
+        childList:true,
+        subtree:true,
+        attributes:true,
+        attributeFilter:['hidden','class','style','aria-hidden']
+      });
     }
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();

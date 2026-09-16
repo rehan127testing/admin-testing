@@ -364,7 +364,56 @@
     );
   }
 
+
+  function isVisibleElement(el) {
+    if (!el) return false;
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return cs.display !== 'none' &&
+      cs.visibility !== 'hidden' &&
+      Number(cs.opacity || 1) > 0 &&
+      r.width > 0 && r.height > 0;
+  }
+
+  function teacherLoginIsVisible() {
+    const signIn = allClickables().find((el) =>
+      /^sign\s*in$/i.test(norm(el.textContent || el.value)) &&
+      isVisibleElement(el)
+    );
+
+    if (!signIn) return false;
+
+    const email = Array.from(document.querySelectorAll('input')).find((el) => {
+      const hay = [
+        el.type, el.name, el.id, el.placeholder, el.autocomplete,
+        el.getAttribute('aria-label')
+      ].join(' ').toLowerCase();
+      return /email/.test(hay) && isVisibleElement(el);
+    });
+
+    const pin = Array.from(document.querySelectorAll('input')).find((el) => {
+      const hay = [
+        el.type, el.name, el.id, el.placeholder, el.autocomplete,
+        el.getAttribute('aria-label')
+      ].join(' ').toLowerCase();
+      return /(pin|password)/.test(hay) && isVisibleElement(el);
+    });
+
+    return !!(signIn && (email || pin));
+  }
+
+  function removeTeacherShell() {
+    const sidebar = document.querySelector('.wha-teacher-sidebar');
+    if (sidebar) sidebar.remove();
+    document.body.classList.remove('wha-teacher-shell');
+  }
+
   function setupTeacher() {
+    if (teacherLoginIsVisible()) {
+      removeTeacherShell();
+      return false;
+    }
+
     if (document.querySelector('.wha-teacher-sidebar')) return true;
 
     const found = {};
@@ -569,20 +618,46 @@
     let done = false;
 
     if (path.endsWith('/teacher.html') || path.endsWith('teacher.html')) {
-      done = setupTeacher();
+      setupTeacher();
+
+      // Teacher page contains both login and authenticated workspace in one
+      // document. Watch the UI state for the lifetime of the page:
+      // - login visible  -> no sidebar
+      // - authenticated  -> sidebar appears
+      // - signed out     -> sidebar disappears again
+      let teacherRefreshQueued = false;
+      const refreshTeacherShell = () => {
+        if (teacherRefreshQueued) return;
+        teacherRefreshQueued = true;
+        requestAnimationFrame(() => {
+          teacherRefreshQueued = false;
+          if (teacherLoginIsVisible()) removeTeacherShell();
+          else setupTeacher();
+        });
+      };
+
+      const observer = new MutationObserver(refreshTeacherShell);
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['hidden', 'class', 'style', 'aria-hidden']
+      });
+
+      setTimeout(refreshTeacherShell, 100);
+      setTimeout(refreshTeacherShell, 500);
     } else {
       done = setupAdmin();
-    }
 
-    // Rechecking tab/sidebar nodes can be injected after the base page loads.
-    // Retry briefly instead of racing the existing scripts.
-    if (!done) {
-      let tries = 0;
-      const timer = setInterval(() => {
-        tries += 1;
-        const ok = (path.endsWith('teacher.html')) ? setupTeacher() : setupAdmin();
-        if (ok || tries >= 20) clearInterval(timer);
-      }, 150);
+      // Admin Rechecking/nav nodes can be injected after the base page loads.
+      if (!done) {
+        let tries = 0;
+        const timer = setInterval(() => {
+          tries += 1;
+          const ok = setupAdmin();
+          if (ok || tries >= 20) clearInterval(timer);
+        }, 150);
+      }
     }
   }
 

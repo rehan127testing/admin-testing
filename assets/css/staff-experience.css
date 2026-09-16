@@ -299,3 +299,50 @@ body.wha-teacher-shell button{
     padding-left:0!important;
   }
 }
+
+
+/* ==========================================================================
+   2026-09-16 — FINAL Admin sidebar flow fix
+   Admin reuses the repo's existing sidebar element. Keeping that element fixed
+   removes it from the original layout flow and makes the content slide under it.
+   Sticky preserves its layout column while keeping it visible during scrolling.
+   ========================================================================== */
+@media (min-width:900px){
+  body.wha-admin-shell{
+    padding-left:0!important;
+    overflow-x:hidden!important;
+  }
+
+  body.wha-admin-shell > .wha-admin-sidebar,
+  body.wha-admin-shell .wha-admin-sidebar{
+    position:sticky!important;
+    position:-webkit-sticky!important;
+    top:0!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    inset:auto!important;
+    width:var(--wha-staff-sidebar-w,248px)!important;
+    min-width:var(--wha-staff-sidebar-w,248px)!important;
+    flex:0 0 var(--wha-staff-sidebar-w,248px)!important;
+    height:100vh!important;
+    align-self:flex-start!important;
+    z-index:999!important;
+  }
+
+  /* Undo the previous overlay-compensation rule. The sidebar now stays in
+     normal layout flow, so the original Admin content column remains intact. */
+  body.wha-admin-shell > :not(.wha-admin-sidebar):not(.wha-admin-theme-modal):not(script):not(style){
+    max-width:none!important;
+  }
+}
+
+@media (max-width:899px){
+  body.wha-admin-shell .wha-admin-sidebar{
+    position:relative!important;
+    inset:auto!important;
+    width:auto!important;
+    min-width:0!important;
+    height:auto!important;
+  }
+}

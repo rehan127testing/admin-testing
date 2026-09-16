@@ -79,6 +79,15 @@
   }
 
 
+  function ensureStaffExperienceCss() {
+    if (document.querySelector('link[data-wha-staff-experience]')) return;
+    const css=document.createElement('link');
+    css.rel='stylesheet';
+    css.href='assets/css/staff-experience.css';
+    css.dataset.whaStaffExperience='true';
+    document.head.appendChild(css);
+  }
+
   function ensureTeacherEnhancements() {
     if (!document.querySelector('link[data-wha-teacher-themes]')) {
       const css=document.createElement('link');
@@ -94,6 +103,7 @@
       js.dataset.whaTeacherTheme='true';
       document.body.appendChild(js);
     }
+    ensureStaffExperienceCss();
   }
 
   function removeTeacherSidebar() {
@@ -116,44 +126,77 @@
     const nav = document.createElement('nav'); nav.className='wha-staff-sidebar__nav';
     const icons={'Boss Papers':'◇','Grading':'✓','Rechecking':'↪'};
     const teacherButtons={};
+    let teacherActiveLabel='';
+
+    function visibleTeacherSection(){
+      const headings=Array.from(document.querySelectorAll('h1,h2,h3,[data-panel-title]'))
+        .filter(el=>visible(el))
+        .map(el=>norm(el.textContent))
+        .filter(Boolean);
+
+      for(const label of TEACHER_NAV){
+        if(headings.some(text=>text===label || text.startsWith(label+' '))) return label;
+      }
+      return '';
+    }
 
     function syncTeacherActive(preferred){
-      let activeLabel=preferred||'';
-      if(!activeLabel){
-        TEACHER_NAV.forEach(label=>{
-          const orig=byText(label);
-          if(!orig)return;
-          if(
-            orig.getAttribute('aria-selected')==='true' ||
-            orig.getAttribute('aria-current')==='page' ||
-            /(^|\s)(active|is-active|selected)(\s|$)/i.test(orig.className||'')
-          ) activeLabel=label;
-        });
-      }
-      if(!activeLabel)activeLabel='Boss Papers';
+      if(preferred) teacherActiveLabel=preferred;
+
+      const visibleLabel=visibleTeacherSection();
+      if(visibleLabel) teacherActiveLabel=visibleLabel;
+      if(!teacherActiveLabel) teacherActiveLabel='Boss Papers';
+
       Object.entries(teacherButtons).forEach(([label,btn])=>{
-        const active=(label===activeLabel);
+        const active=(label===teacherActiveLabel);
         btn.classList.toggle('is-active',active);
-        if(active)btn.setAttribute('aria-current','page'); else btn.removeAttribute('aria-current');
+        btn.dataset.whaTeacherActive=active?'true':'false';
+        if(active) btn.setAttribute('aria-current','page');
+        else btn.removeAttribute('aria-current');
       });
     }
 
     TEACHER_NAV.forEach(label=>{
-      const orig=byText(label); if(!orig)return;
+      const orig=byText(label);
+      if(!orig)return;
+
       const b=navButton(label,icons[label]);
       teacherButtons[label]=b;
+      b.dataset.whaTeacherNav=label;
+
       b.addEventListener('click',()=>{
+        teacherActiveLabel=label;
         syncTeacherActive(label);
         orig.click();
-        requestAnimationFrame(()=>syncTeacherActive());
-        setTimeout(()=>syncTeacherActive(),80);
+
+        requestAnimationFrame(()=>syncTeacherActive(label));
+        setTimeout(()=>syncTeacherActive(label),100);
       });
+
+      orig.addEventListener('click',()=>{
+        teacherActiveLabel=label;
+        setTimeout(()=>syncTeacherActive(label),0);
+      });
+
       nav.appendChild(b);
-      const observer=new MutationObserver(()=>syncTeacherActive());
-      observer.observe(orig,{attributes:true,attributeFilter:['class','aria-selected','aria-current']});
     });
+
     aside.appendChild(nav);
     syncTeacherActive();
+
+    const teacherContentObserver=new MutationObserver(()=>{
+      const visibleLabel=visibleTeacherSection();
+      if(visibleLabel && visibleLabel!==teacherActiveLabel){
+        teacherActiveLabel=visibleLabel;
+        syncTeacherActive();
+      }
+    });
+    teacherContentObserver.observe(document.body,{
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['hidden','class','style','aria-hidden']
+    });
 
     const signout = clickables().find(el=>/^sign\s*out$/i.test(norm(el.textContent||el.value)));
     if(signout){
@@ -188,6 +231,7 @@
     if (!document.querySelector('script[data-wha-admin-overview-theme]')) {
       const js=document.createElement('script'); js.src='assets/js/admin-overview-theme.js'; js.defer=true; js.dataset.whaAdminOverviewTheme='true'; document.body.appendChild(js);
     }
+    ensureStaffExperienceCss();
   }
 
   function setupAdmin() {

@@ -1,0 +1,267 @@
+/* ==========================================================================
+   W.H. Academy — Final Staff Experience System
+   Admin + Teacher | 2026-09-16
+   ========================================================================== */
+
+:root{
+  --wha-motion-fast:150ms;
+  --wha-motion:240ms;
+  --wha-motion-slow:380ms;
+  --wha-ease:cubic-bezier(.22,.8,.24,1);
+  --wha-ease-snappy:cubic-bezier(.2,.7,.2,1);
+  --wha-radius-sm:10px;
+  --wha-radius-md:14px;
+  --wha-radius-lg:18px;
+}
+
+/* ---------- Sidebar scale + hierarchy ---------- */
+.wha-staff-brand__title{
+  font-size:16.5px!important;
+  font-weight:850!important;
+  letter-spacing:-.015em!important;
+}
+.wha-staff-brand__role{font-size:10.5px!important}
+.wha-staff-nav-item,
+.wha-admin-sidebar [data-wha-staff-nav]{
+  min-height:50px!important;
+  padding:11px 13px!important;
+  font-size:15.5px!important;
+  line-height:1.2!important;
+  font-weight:760!important;
+  letter-spacing:-.01em!important;
+  transition:
+    transform var(--wha-motion-fast) var(--wha-ease-snappy),
+    background-color var(--wha-motion-fast) ease,
+    border-color var(--wha-motion-fast) ease,
+    box-shadow var(--wha-motion) var(--wha-ease)!important;
+}
+.wha-staff-nav-icon{width:23px!important;flex-basis:23px!important;font-size:17px!important}
+.wha-staff-nav-item:hover,
+.wha-admin-sidebar [data-wha-staff-nav]:hover{transform:translateX(2px)!important}
+.wha-staff-nav-item:active,
+.wha-admin-sidebar [data-wha-staff-nav]:active{transform:translateX(1px) scale(.99)!important}
+
+/* Exactly one Teacher nav item gets the selected treatment. */
+body.wha-teacher-shell .wha-teacher-sidebar .wha-staff-nav-item:not(.is-active){
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+body.wha-teacher-shell .wha-teacher-sidebar .wha-staff-nav-item.is-active{
+  color:#fff!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(255,255,255,.12))!important;
+  border-color:rgba(255,255,255,.32)!important;
+  box-shadow:inset 4px 0 0 #fbbf24,0 10px 22px rgba(15,23,42,.13)!important;
+}
+
+/* ---------- Professional typography ---------- */
+body.wha-admin-shell,
+body.wha-teacher-shell{
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-synthesis:none;
+}
+body.wha-admin-shell :is(h1,h2,h3),
+body.wha-teacher-shell :is(h1,h2,h3){
+  letter-spacing:-.025em;
+  text-wrap:balance;
+}
+body.wha-admin-shell :is(h1,h2),
+body.wha-teacher-shell :is(h1,h2){font-weight:820}
+
+/* ---------- Softer light themes: eye-comfort, not raw white ---------- */
+html[data-wha-admin-theme="light"],body[data-wha-admin-theme="light"]{
+  --wa-bg:#e8edf4!important;
+  --wa-surface:#f3f6fa!important;
+  --wa-surface-2:#eaf0f6!important;
+  --wa-text:#152136!important;
+  --wa-muted:#51637d!important;
+  --wa-border:#c5d1e0!important;
+  --wa-primary:#4058d8!important;
+  --wa-primary-2:#7357dc!important;
+}
+html[data-wha-teacher-theme="light"],body[data-wha-teacher-theme="light"]{
+  --wt-bg:#e9eef5!important;
+  --wt-surface:#f4f7fa!important;
+  --wt-surface2:#ebf0f6!important;
+  --wt-text:#17243a!important;
+  --wt-muted:#52647d!important;
+  --wt-border:#c6d2e0!important;
+  --wt-primary:#4058d8!important;
+  --wt-secondary:#7755dc!important;
+}
+
+/* Softer pale Teacher palettes. */
+html[data-wha-teacher-theme="rose"],body[data-wha-teacher-theme="rose"]{
+  --wt-bg:#f1e8ec!important;--wt-surface:#f8f3f5!important;--wt-surface2:#eee6ea!important;
+  --wt-text:#4a2032!important;--wt-muted:#725264!important;--wt-border:#d7c2cc!important
+}
+html[data-wha-teacher-theme="candy"],body[data-wha-teacher-theme="candy"]{
+  --wt-bg:#f0e8f1!important;--wt-surface:#f8f4f9!important;--wt-surface2:#ece5ef!important;
+  --wt-text:#45224c!important;--wt-muted:#705978!important;--wt-border:#d5c5d9!important
+}
+html[data-wha-teacher-theme="sky"],body[data-wha-teacher-theme="sky"]{
+  --wt-bg:#e7edf5!important;--wt-surface:#f4f7fa!important;--wt-surface2:#eaf0f6!important;
+  --wt-text:#17304f!important;--wt-muted:#536b86!important;--wt-border:#c4d4e4!important
+}
+html[data-wha-teacher-theme="mint"],body[data-wha-teacher-theme="mint"]{
+  --wt-bg:#e5efeb!important;--wt-surface:#f2f7f5!important;--wt-surface2:#e7f0ec!important;
+  --wt-text:#16382f!important;--wt-muted:#506f65!important;--wt-border:#bfd5cc!important
+}
+html[data-wha-teacher-theme="lavender"],body[data-wha-teacher-theme="lavender"]{
+  --wt-bg:#ebe8f2!important;--wt-surface:#f6f4f9!important;--wt-surface2:#ece8f3!important;
+  --wt-text:#342657!important;--wt-muted:#655b7e!important;--wt-border:#cdc6de!important
+}
+
+/* Stronger secondary text in dark themes. */
+html[data-wha-admin-theme="dark"],body[data-wha-admin-theme="dark"]{--wa-muted:#b4c3d8!important}
+html[data-wha-admin-theme="midnight"],body[data-wha-admin-theme="midnight"]{--wa-muted:#c0bdd8!important}
+html[data-wha-admin-theme="sunset"],body[data-wha-admin-theme="sunset"]{--wa-muted:#efc9c0!important}
+html[data-wha-admin-theme="forest"],body[data-wha-admin-theme="forest"]{--wa-muted:#b5d7ca!important}
+html[data-wha-admin-theme="hacker"],body[data-wha-admin-theme="hacker"]{--wa-muted:#8fd6aa!important}
+
+html[data-wha-teacher-theme="dark"],body[data-wha-teacher-theme="dark"]{--wt-muted:#b6c5d9!important}
+html[data-wha-teacher-theme="midnight"],body[data-wha-teacher-theme="midnight"]{--wt-muted:#c0bdd8!important}
+html[data-wha-teacher-theme="ocean"],body[data-wha-teacher-theme="ocean"]{--wt-muted:#b4d7e3!important}
+html[data-wha-teacher-theme="aurora"],body[data-wha-teacher-theme="aurora"]{--wt-muted:#b8dbcf!important}
+html[data-wha-teacher-theme="forest"],body[data-wha-teacher-theme="forest"]{--wt-muted:#b8d4c2!important}
+html[data-wha-teacher-theme="gold"],body[data-wha-teacher-theme="gold"]{--wt-muted:#decfa8!important}
+html[data-wha-teacher-theme="sunset"],body[data-wha-teacher-theme="sunset"]{--wt-muted:#efc8c0!important}
+html[data-wha-teacher-theme="grape"],body[data-wha-teacher-theme="grape"]{--wt-muted:#c8b4d9!important}
+html[data-wha-teacher-theme="ember"],body[data-wha-teacher-theme="ember"]{--wt-muted:#e6b9b0!important}
+
+/* ---------- Theme-native surfaces ---------- */
+body.wha-admin-shell{
+  background:
+    radial-gradient(circle at 92% 5%,color-mix(in srgb,var(--wa-primary) 10%,transparent),transparent 32%),
+    var(--wa-bg)!important;
+  color:var(--wa-text)!important;
+}
+body.wha-teacher-shell{
+  background:
+    radial-gradient(circle at 92% 5%,color-mix(in srgb,var(--wt-primary) 10%,transparent),transparent 32%),
+    var(--wt-bg)!important;
+  color:var(--wt-text)!important;
+}
+body.wha-admin-shell .wha-admin-auto-surface{
+  background:var(--wa-surface)!important;color:var(--wa-text)!important;border-color:var(--wa-border)!important;
+  box-shadow:0 10px 28px color-mix(in srgb,var(--wa-primary) 5%,transparent)
+}
+body.wha-admin-shell .wha-admin-auto-control{
+  background:var(--wa-surface-2)!important;color:var(--wa-text)!important;border-color:var(--wa-border)!important
+}
+body.wha-teacher-shell .wha-teacher-auto-surface{
+  background:var(--wt-surface)!important;color:var(--wt-text)!important;border-color:var(--wt-border)!important;
+  box-shadow:0 10px 28px color-mix(in srgb,var(--wt-primary) 5%,transparent)
+}
+body.wha-teacher-shell .wha-teacher-auto-control{
+  background:var(--wt-surface2)!important;color:var(--wt-text)!important;border-color:var(--wt-border)!important
+}
+
+/* Teacher gradient header becomes part of the selected theme. */
+body.wha-teacher-shell .wha-teacher-gradient-surface{
+  background:linear-gradient(110deg,color-mix(in srgb,var(--wt-primary) 76%,#172554),var(--wt-secondary))!important;
+  color:#fff!important;
+}
+body.wha-teacher-shell .wha-teacher-gradient-surface :is(h1,h2,h3,h4,h5,h6,p,strong,label,a,button,span){
+  color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.18)
+}
+body.wha-teacher-shell .wha-teacher-gradient-surface :is(input,select,textarea,[class*="chip"],[class*="badge"]){
+  color:var(--wt-text)!important;text-shadow:none!important
+}
+
+/* ---------- Contrast guard ---------- */
+body.wha-admin-shell .wha-admin-contrast-dark,
+body.wha-admin-shell .wha-admin-contrast-dark *{
+  color:#142035!important;text-shadow:none!important
+}
+body.wha-admin-shell .wha-admin-contrast-light,
+body.wha-admin-shell .wha-admin-contrast-light *{
+  color:#f8fbff!important;text-shadow:0 1px 2px rgba(0,0,0,.14)!important
+}
+body.wha-teacher-shell .wha-teacher-contrast-dark,
+body.wha-teacher-shell .wha-teacher-contrast-dark *{
+  color:#142035!important;text-shadow:none!important
+}
+body.wha-teacher-shell .wha-teacher-contrast-light,
+body.wha-teacher-shell .wha-teacher-contrast-light *{
+  color:#f8fbff!important;text-shadow:0 1px 2px rgba(0,0,0,.14)!important
+}
+body.wha-admin-shell :is(p,small,[class*="hint"],[class*="help"],[class*="subtext"],[class*="meta"]){
+  color:var(--wa-muted)!important
+}
+body.wha-teacher-shell :is(p,small,[class*="hint"],[class*="help"],[class*="subtext"],[class*="meta"]){
+  color:var(--wt-muted)!important
+}
+body.wha-admin-shell :is(input,select,textarea)::placeholder{
+  color:color-mix(in srgb,var(--wa-muted) 88%,transparent)!important
+}
+body.wha-teacher-shell :is(input,select,textarea)::placeholder{
+  color:color-mix(in srgb,var(--wt-muted) 88%,transparent)!important
+}
+body.wha-admin-shell :is(select option,optgroup){background:var(--wa-surface)!important;color:var(--wa-text)!important}
+body.wha-teacher-shell :is(select option,optgroup){background:var(--wt-surface)!important;color:var(--wt-text)!important}
+
+/* ---------- Controls + states ---------- */
+body.wha-admin-shell :is(button,input,select,textarea),
+body.wha-teacher-shell :is(button,input,select,textarea){
+  min-height:42px;
+  border-radius:var(--wha-radius-sm);
+}
+body.wha-admin-shell :is(button,a,[role="button"]):focus-visible,
+body.wha-teacher-shell :is(button,a,[role="button"]):focus-visible,
+body.wha-admin-shell :is(input,select,textarea):focus-visible,
+body.wha-teacher-shell :is(input,select,textarea):focus-visible{
+  outline:2px solid currentColor!important;
+  outline-offset:2px!important;
+}
+body.wha-admin-shell button:not([disabled]):hover,
+body.wha-teacher-shell button:not([disabled]):hover{transform:translateY(-1px)}
+body.wha-admin-shell button:not([disabled]):active,
+body.wha-teacher-shell button:not([disabled]):active{transform:translateY(0) scale(.985)}
+
+/* ---------- Motion with purpose ---------- */
+.wha-admin-auto-surface,
+.wha-teacher-auto-surface{animation:whaSurfaceEnter .36s var(--wha-ease) both}
+.wha-admin-theme-modal__panel,
+.wha-teacher-theme-panel{animation:whaDialogEnter .28s var(--wha-ease) both}
+.wha-admin-theme-card,
+.wha-teacher-theme-card{
+  transition:transform var(--wha-motion) var(--wha-ease),border-color var(--wha-motion-fast) ease,box-shadow var(--wha-motion) var(--wha-ease)!important
+}
+.wha-admin-theme-card:hover,
+.wha-teacher-theme-card:hover{transform:translateY(-3px)}
+.wha-admin-shell .wha-admin-sidebar,
+.wha-teacher-shell .wha-teacher-sidebar{animation:whaSidebarEnter .4s var(--wha-ease) both}
+
+body.wha-admin-shell button,
+body.wha-teacher-shell button{
+  transition:
+    transform var(--wha-motion-fast) var(--wha-ease-snappy),
+    box-shadow var(--wha-motion) var(--wha-ease),
+    background-color var(--wha-motion-fast) ease,
+    border-color var(--wha-motion-fast) ease,
+    color var(--wha-motion-fast) ease!important
+}
+
+@keyframes whaSurfaceEnter{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes whaDialogEnter{
+  from{opacity:0;transform:translateY(12px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes whaSidebarEnter{
+  from{opacity:.55;transform:translateX(-8px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important
+  }
+}

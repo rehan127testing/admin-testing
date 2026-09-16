@@ -80,12 +80,10 @@
   function normalize(){
     if(!document.body.classList.contains('wha-teacher-shell'))return;
     const theme=saved();
-    const light=(theme==='light');
 
     document.querySelectorAll('.wha-teacher-auto-surface,.wha-teacher-auto-control,.wha-teacher-gradient-surface,.wha-teacher-contrast-dark,.wha-teacher-contrast-light').forEach(el=>{
       el.classList.remove('wha-teacher-auto-surface','wha-teacher-auto-control','wha-teacher-gradient-surface','wha-teacher-contrast-dark','wha-teacher-contrast-light');
     });
-    if(light)return;
 
     const selectors=[
       'article','section','div','table','thead','tbody','tr','td','th',
@@ -101,8 +99,8 @@
         el.classList.add('wha-teacher-gradient-surface');
       }
       const bg=rgb(cs.backgroundColor);
-      if(!bg || bg.a<.65)return;
-      const isNeutralLight=lum(bg)>.82 && saturation(bg)<.18;
+      if(!bg || bg.a<.62)return;
+      const isNeutralLight=lum(bg)>.76 && saturation(bg)<.24;
       if(!isNeutralLight)return;
 
       const tag=el.tagName.toLowerCase();

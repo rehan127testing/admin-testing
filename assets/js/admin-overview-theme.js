@@ -58,27 +58,74 @@
     const mx=Math.max(c.r,c.g,c.b),mn=Math.min(c.r,c.g,c.b);
     return mx===0?0:(mx-mn)/mx;
   }
-  function normalizeAdminSurfaces(){
-    const theme=saved();
-    document.querySelectorAll('.wha-admin-auto-surface,.wha-admin-auto-control').forEach(el=>{
-      el.classList.remove('wha-admin-auto-surface','wha-admin-auto-control');
-    });
-    if(theme==='light')return;
+  function adminContrastRatio(a,b){
+    const hi=Math.max(a,b),lo=Math.min(a,b);
+    return (hi+.05)/(lo+.05);
+  }
 
-    document.querySelectorAll('article,section,div,table,thead,tbody,tr,td,th,input,select,textarea,button').forEach(el=>{
+  function adminNearestBg(el){
+    let node=el;
+    while(node && node!==document.body){
+      const bg=adminRgb(getComputedStyle(node).backgroundColor);
+      if(bg && bg.a>=.72)return bg;
+      node=node.parentElement;
+    }
+    return adminRgb(getComputedStyle(document.body).backgroundColor);
+  }
+
+  function normalizeAdminSurfaces(){
+    document.querySelectorAll(
+      '.wha-admin-auto-surface,.wha-admin-auto-control,.wha-admin-contrast-dark,.wha-admin-contrast-light'
+    ).forEach(el=>{
+      el.classList.remove(
+        'wha-admin-auto-surface','wha-admin-auto-control',
+        'wha-admin-contrast-dark','wha-admin-contrast-light'
+      );
+    });
+
+    document.querySelectorAll(
+      'main,form,fieldset,article,section,header,footer,div,table,thead,tbody,tr,td,th,input,select,textarea,button'
+    ).forEach(el=>{
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-admin-sidebar,.wha-admin-theme-modal,.wha-admin-overview'))return;
-      const cs=getComputedStyle(el), bg=adminRgb(cs.backgroundColor);
-      if(!bg||bg.a<.65)return;
-      if(adminLum(bg)<.82||adminSat(bg)>.18)return;
+
+      const cs=getComputedStyle(el);
+      const bg=adminRgb(cs.backgroundColor);
+      if(!bg || bg.a<.62)return;
+
+      // Neutral pale/white surfaces are mapped to the selected theme.
+      // Coloured semantic statuses remain untouched.
+      const neutralLight=adminLum(bg)>.76 && adminSat(bg)<.24;
+      if(!neutralLight)return;
+
       const tag=el.tagName.toLowerCase();
-      if(['input','select','textarea','button'].includes(tag))el.classList.add('wha-admin-auto-control');
-      else{
+      if(['input','select','textarea','button'].includes(tag)){
+        el.classList.add('wha-admin-auto-control');
+      }else{
         const r=el.getBoundingClientRect();
-        if(r.width>110&&r.height>34)el.classList.add('wha-admin-auto-surface');
+        if(r.width>90 && r.height>28)el.classList.add('wha-admin-auto-surface');
       }
     });
+
+    // Text readability guard.
+    document.querySelectorAll(
+      'h1,h2,h3,h4,h5,h6,p,small,strong,label,a,span,td,th,button'
+    ).forEach(el=>{
+      if(!(el instanceof HTMLElement))return;
+      if(el.closest('.wha-admin-sidebar,.wha-admin-theme-modal'))return;
+      if(!String(el.textContent||'').trim())return;
+
+      const fg=adminRgb(getComputedStyle(el).color);
+      const bg=adminNearestBg(el);
+      if(!fg || !bg)return;
+
+      const fl=adminLum(fg), bl=adminLum(bg);
+      if(adminContrastRatio(fl,bl)>=4.5)return;
+
+      el.classList.add(bl>.5?'wha-admin-contrast-dark':'wha-admin-contrast-light');
+    });
   }
+
   function queueAdminSurfaceNormalize(){
     if(adminSurfaceQueued)return;
     adminSurfaceQueued=true;
@@ -87,7 +134,7 @@
   function watchAdminSurfaces(){
     if(adminSurfaceObserver)return;
     adminSurfaceObserver=new MutationObserver(queueAdminSurfaceNormalize);
-    adminSurfaceObserver.observe(document.body,{childList:true,subtree:true});
+    adminSurfaceObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});
   }
 
   function saved(){const x=localStorage.getItem(KEY)||'light'; return THEMES[x]?x:'light';}

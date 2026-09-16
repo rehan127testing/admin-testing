@@ -120,7 +120,16 @@
               <h2>Student activity</h2>
               <p id="wha-activity-summary" class="wha-admin-card-subtitle">Question attempts recorded across the academy.</p>
             </div>
-            <span class="wha-admin-live-dot">Last 7 days</span>
+            <div class="wha-admin-activity-tools">
+              <div class="wha-admin-range-tabs" id="wha-activity-range-tabs" role="tablist" aria-label="Student activity time filters">
+                <button type="button" class="is-active" data-activity-range="daily">Daily</button>
+                <button type="button" data-activity-range="weekly">Weekly</button>
+                <button type="button" data-activity-range="monthly">Monthly</button>
+                <button type="button" data-activity-range="yearly">Yearly</button>
+                <button type="button" data-activity-range="lifetime">Lifetime</button>
+              </div>
+              <span id="wha-activity-range-badge" class="wha-admin-live-dot">Daily</span>
+            </div>
           </div>
           <div id="wha-admin-activity-chart" class="wha-admin-activity-chart" aria-label="Student activity chart">
             <div class="wha-admin-chart-empty">Loading activity…</div>
@@ -194,6 +203,12 @@
     o.querySelector('#wha-overview-refresh').addEventListener('click',load);
     o.querySelector('[data-open-theme]').addEventListener('click',()=>{const m=modal();m.hidden=false;apply(saved());});
     o.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.quick)?.click()));
+    o.querySelectorAll('[data-activity-range]').forEach(btn=>btn.addEventListener('click',()=>{
+      activityState.range=btn.dataset.activityRange||'daily';
+      syncActivityTabs();
+      renderActivity(activityState.trend||[]);
+    }));
+    syncActivityTabs();
     return o;
   }
 
@@ -210,6 +225,136 @@
     const rows=Object.entries(by||{}).sort((a,b)=>num(b[1])-num(a[1]));
     if(!rows.length){h.innerHTML='<p class="wha-admin-muted">No status data yet.</p>';return;}
     h.innerHTML=rows.map(([k,v])=>`<div><span><i class="status-${String(k).toLowerCase().replace(/[^a-z0-9]+/g,'-')}"></i>${esc(k)}</span><strong>${num(v)}</strong></div>`).join('');
+  }
+
+
+  const activityState={range:'daily',trend:[]};
+  const ACTIVITY_RANGE_LABELS={daily:'Daily',weekly:'Weekly',monthly:'Monthly',yearly:'Yearly',lifetime:'Lifetime'};
+
+  function syncActivityTabs(){
+    document.querySelectorAll('[data-activity-range]').forEach(btn=>{
+      const active=(btn.dataset.activityRange===activityState.range);
+      btn.classList.toggle('is-active',active);
+      btn.setAttribute('aria-selected',active?'true':'false');
+    });
+    const badge=document.getElementById('wha-activity-range-badge');
+    if(badge)badge.textContent=ACTIVITY_RANGE_LABELS[activityState.range]||'Daily';
+  }
+
+  function startOfWeek(date){
+    const d=new Date(date);
+    d.setHours(12,0,0,0);
+    const day=d.getDay();
+    const diff=(day===0?-6:1-day);
+    d.setDate(d.getDate()+diff);
+    return d;
+  }
+
+  function monthKey(date){
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  function yearKey(date){
+    return String(date.getFullYear());
+  }
+
+  function parseTrendRows(trend){
+    return (Array.isArray(trend)?trend:[]).map(row=>{
+      const dt=new Date(row?.date||row?.createdAt||row?.day||row?.bucket);
+      return Number.isFinite(dt.getTime()) ? {
+        date: dt,
+        attempts: num(row?.total),
+        correct: num(row?.correct)
+      } : null;
+    }).filter(Boolean).sort((a,b)=>a.date-b.date);
+  }
+
+  function rangeLabel(range){
+    return ACTIVITY_RANGE_LABELS[range]||'Daily';
+  }
+
+  function buildSlots(range, rows){
+    const now=new Date();
+    now.setHours(12,0,0,0);
+    const slots=[];
+
+    if(range==='daily'){
+      for(let i=6;i>=0;i--){
+        const d=new Date(now); d.setDate(now.getDate()-i);
+        slots.push({
+          key: isoDay(d),
+          label: new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short'}).format(d),
+          match: x=>isoDay(x.date)===isoDay(d)
+        });
+      }
+      return slots;
+    }
+
+    if(range==='weekly'){
+      const current=startOfWeek(now);
+      for(let i=7;i>=0;i--){
+        const d=new Date(current); d.setDate(current.getDate()-(i*7));
+        const key=isoDay(d);
+        const end=new Date(d); end.setDate(d.getDate()+6);
+        slots.push({
+          key,
+          label: `${new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short'}).format(d)}`,
+          match: x=>isoDay(startOfWeek(x.date))===key
+        });
+      }
+      return slots;
+    }
+
+    if(range==='monthly'){
+      const cur=new Date(now.getFullYear(), now.getMonth(), 1, 12);
+      for(let i=11;i>=0;i--){
+        const d=new Date(cur.getFullYear(), cur.getMonth()-i, 1, 12);
+        const key=monthKey(d);
+        slots.push({
+          key,
+          label: new Intl.DateTimeFormat(undefined,{month:'short'}).format(d),
+          match: x=>monthKey(x.date)===key
+        });
+      }
+      return slots;
+    }
+
+    if(range==='yearly'){
+      const yr=now.getFullYear();
+      for(let i=4;i>=0;i--){
+        const y=yr-i;
+        slots.push({
+          key: String(y),
+          label: String(y),
+          match: x=>x.date.getFullYear()===y
+        });
+      }
+      return slots;
+    }
+
+    // lifetime
+    if(!rows.length){
+      return [{
+        key:'lifetime',
+        label:'All time',
+        match: ()=>true
+      }];
+    }
+    const first=rows[0].date;
+    const months=[];
+    let cursor=new Date(first.getFullYear(), first.getMonth(), 1, 12);
+    const end=new Date(now.getFullYear(), now.getMonth(), 1, 12);
+    while(cursor<=end){
+      const d=new Date(cursor);
+      const key=monthKey(d);
+      months.push({
+        key,
+        label: new Intl.DateTimeFormat(undefined,{month:'short', year: months.length===0 || d.getMonth()===0 ? '2-digit' : undefined}).format(d),
+        match: x=>monthKey(x.date)===key
+      });
+      cursor.setMonth(cursor.getMonth()+1);
+    }
+    return months;
   }
 
   function isoDay(date){
@@ -231,22 +376,20 @@
     return days;
   }
 
-  function aggregateActivity(trend){
-    const days=lastSevenDays();
-    const byDay={};
-    days.forEach(x=>byDay[x.key]={attempts:0,correct:0});
-    (Array.isArray(trend)?trend:[]).forEach(row=>{
-      const key=String(row?.date||'').slice(0,10);
-      if(!byDay[key])return;
-      byDay[key].attempts+=num(row?.total);
-      byDay[key].correct+=num(row?.correct);
+
+  function aggregateActivity(trend, range){
+    const rows=parseTrendRows(trend);
+    const slots=buildSlots(range, rows);
+    return slots.map(slot=>{
+      let attempts=0, correct=0;
+      rows.forEach(row=>{
+        if(slot.match(row)){
+          attempts+=row.attempts;
+          correct+=row.correct;
+        }
+      });
+      return {key:slot.key,label:slot.label,attempts,correct};
     });
-    return days.map(x=>({
-      key:x.key,
-      label:new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short'}).format(x.date),
-      attempts:byDay[x.key].attempts,
-      correct:byDay[x.key].correct
-    }));
   }
 
   function renderActivity(trend){
@@ -254,18 +397,29 @@
     const summary=document.getElementById('wha-activity-summary');
     if(!host)return;
 
-    const rows=aggregateActivity(trend);
+    const range=activityState.range||'daily';
+    const rows=aggregateActivity(trend, range);
     const total=rows.reduce((s,r)=>s+r.attempts,0);
     const correct=rows.reduce((s,r)=>s+r.correct,0);
     const accuracy=total?Math.round(correct/total*100):0;
+    const badge=document.getElementById('wha-activity-range-badge');
+    if(badge)badge.textContent=rangeLabel(range);
+
+    const periodText={
+      daily:'in the last 7 days',
+      weekly:'in the last 8 weeks',
+      monthly:'in the last 12 months',
+      yearly:'in the last 5 years',
+      lifetime:'across lifetime records'
+    }[range] || 'in the selected period';
 
     if(summary){
       summary.textContent=total
-        ? `${total} question attempt${total===1?'':'s'} · ${accuracy}% correct in the last 7 days`
-        : 'No question attempts recorded in the last 7 days.';
+        ? `${total} question attempt${total===1?'':'s'} · ${accuracy}% correct ${periodText}`
+        : `No question attempts recorded ${periodText}.`;
     }
 
-    const w=760,h=260,left=46,right=18,top=18,bottom=42;
+    const w=Math.max(760, rows.length*66), h=270, left=48, right=18, top=20, bottom=48;
     const plotW=w-left-right, plotH=h-top-bottom;
     const max=Math.max(4,...rows.map(r=>r.attempts));
     const ceil=Math.max(4,Math.ceil(max/4)*4);
@@ -280,7 +434,6 @@
 
     const points=rows.map((r,i)=>`${x(i)},${y(r.attempts)}`).join(' ');
     const area=`${left},${top+plotH} ${points} ${w-right},${top+plotH}`;
-
     const dots=rows.map((r,i)=>`
       <g class="wha-chart-point" data-attempts="${r.attempts}" data-label="${esc(r.label)}">
         <circle cx="${x(i)}" cy="${y(r.attempts)}" r="5"></circle>
@@ -290,7 +443,7 @@
     const labels=rows.map((r,i)=>`<text class="wha-chart-x" x="${x(i)}" y="${h-14}" text-anchor="middle">${esc(r.label)}</text>`).join('');
 
     host.innerHTML=`
-      <svg class="wha-admin-activity-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Question attempts in the last seven days">
+      <svg class="wha-admin-activity-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Question attempts chart">
         <defs>
           <linearGradient id="whaActivityFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="var(--wa-primary)" stop-opacity=".28"></stop>
@@ -410,7 +563,8 @@
     setKpi('papers',papers.length);
     setKpi('rechecks',Array.isArray(rechecks)?rechecks.filter(r=>String(r.status||'').toLowerCase()==='open'&&!r.archivedAt).length:0);
 
-    renderActivity(difficulty.trend||[]);
+    activityState.trend=(difficulty.trend||[]);
+    renderActivity(activityState.trend);
     renderRecentActions(teachers,papers,rechecks);
     renderClasses(stats.byClassLevel||{});
     renderStatuses(stats.byStatus||{});

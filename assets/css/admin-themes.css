@@ -236,3 +236,105 @@ body[data-wha-admin-theme="hacker"] .wha-chart-point circle {
     text-align: left;
   }
 }
+
+
+/* 2026-09-16 — Admin activity filters + live badge alignment */
+.wha-admin-activity-tools{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.wha-admin-range-tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.wha-admin-range-tabs button{
+  border:1px solid var(--wa-border);
+  background:var(--wa-surface-2);
+  color:var(--wa-muted);
+  border-radius:999px;
+  padding:8px 12px;
+  font:800 11px/1 system-ui;
+  letter-spacing:.02em;
+  cursor:pointer;
+  transition:.18s ease;
+}
+.wha-admin-range-tabs button:hover{
+  color:var(--wa-text);
+  border-color:color-mix(in srgb,var(--wa-primary) 40%,var(--wa-border));
+  transform:translateY(-1px);
+}
+.wha-admin-range-tabs button.is-active{
+  color:#fff;
+  background:linear-gradient(90deg,var(--wa-primary),var(--wa-primary-2));
+  border-color:transparent;
+  box-shadow:0 10px 24px color-mix(in srgb,var(--wa-primary) 22%, transparent);
+}
+.wha-admin-live-dot{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:32px;
+  min-width:70px;
+  border:1px solid color-mix(in srgb,var(--wa-good) 40%,var(--wa-border));
+  border-radius:999px;
+  padding:6px 12px;
+  color:var(--wa-good);
+  background:color-mix(in srgb,var(--wa-good) 10%, transparent);
+  font:800 11px/1 system-ui;
+  white-space:nowrap;
+}
+.wha-admin-class-bars .wha-admin-live-dot,
+.wha-admin-card-head .wha-admin-live-dot{
+  align-self:flex-start;
+}
+.wha-admin-activity-chart{
+  overflow-x:auto;
+  justify-content:start;
+}
+.wha-admin-activity-svg{
+  min-width:760px;
+}
+
+body[data-wha-admin-theme="hacker"] .wha-admin-range-tabs button{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body[data-wha-admin-theme="hacker"] .wha-admin-range-tabs button.is-active{
+  color:#02120b;
+  background:linear-gradient(90deg,#00ff88,#00b8ff);
+}
+body[data-wha-admin-theme="hacker"] .wha-admin-live-dot{
+  color:#00ff88;
+  background:rgba(0,255,136,.08);
+  border-color:#0b6b38;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+@media (max-width: 980px){
+  .wha-admin-card-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .wha-admin-activity-tools{
+    width:100%;
+    justify-content:flex-start;
+  }
+}
+@media (max-width: 640px){
+  .wha-admin-range-tabs{
+    gap:6px;
+  }
+  .wha-admin-range-tabs button{
+    padding:7px 10px;
+    font-size:10px;
+  }
+  .wha-admin-live-dot{
+    min-height:28px;
+    min-width:auto;
+    padding:5px 10px;
+  }
+}

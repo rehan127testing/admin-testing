@@ -222,7 +222,7 @@ body.wha-teacher-shell button:not([disabled]):active{transform:translateY(0) sca
 
 /* ---------- Motion with purpose ---------- */
 .wha-admin-auto-surface,
-.wha-teacher-auto-surface{animation:whaSurfaceEnter .36s var(--wha-ease) both}
+.wha-teacher-auto-surface{animation:none!important}
 .wha-admin-theme-modal__panel,
 .wha-teacher-theme-panel{animation:whaDialogEnter .28s var(--wha-ease) both}
 .wha-admin-theme-card,

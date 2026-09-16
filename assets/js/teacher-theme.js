@@ -68,6 +68,7 @@
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-teacher-sidebar,.wha-teacher-theme-modal'))return;
       if(!String(el.textContent||'').trim())return;
+      if(el.classList.contains('wha-teacher-contrast-dark') || el.classList.contains('wha-teacher-contrast-light'))return;
       const fg=rgb(getComputedStyle(el).color);
       const bgInfo=nearestPaintedBackground(el);
       if(bgInfo.gradient||!fg||!bgInfo.rgb)return;
@@ -79,11 +80,6 @@
 
   function normalize(){
     if(!document.body.classList.contains('wha-teacher-shell'))return;
-    const theme=saved();
-
-    document.querySelectorAll('.wha-teacher-auto-surface,.wha-teacher-auto-control,.wha-teacher-gradient-surface,.wha-teacher-contrast-dark,.wha-teacher-contrast-light').forEach(el=>{
-      el.classList.remove('wha-teacher-auto-surface','wha-teacher-auto-control','wha-teacher-gradient-surface','wha-teacher-contrast-dark','wha-teacher-contrast-light');
-    });
 
     const selectors=[
       'article','section','div','table','thead','tbody','tr','td','th',
@@ -93,11 +89,20 @@
     document.querySelectorAll(selectors).forEach(el=>{
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-teacher-sidebar,.wha-teacher-theme-modal'))return;
+
       const cs=getComputedStyle(el);
       const rect=el.getBoundingClientRect();
-      if(/gradient/i.test(cs.backgroundImage||'') && rect.width>250 && rect.height>=42 && rect.height<=180){
+
+      if(
+        !el.classList.contains('wha-teacher-gradient-surface') &&
+        /gradient/i.test(cs.backgroundImage||'') &&
+        rect.width>250 && rect.height>=42 && rect.height<=180
+      ){
         el.classList.add('wha-teacher-gradient-surface');
       }
+
+      if(el.classList.contains('wha-teacher-auto-surface') || el.classList.contains('wha-teacher-auto-control'))return;
+
       const bg=rgb(cs.backgroundColor);
       if(!bg || bg.a<.62)return;
       const isNeutralLight=lum(bg)>.76 && saturation(bg)<.24;
@@ -107,10 +112,10 @@
       if(['input','select','textarea','button'].includes(tag)){
         el.classList.add('wha-teacher-auto-control');
       }else{
-        const r=el.getBoundingClientRect();
-        if(r.width>110 && r.height>34)el.classList.add('wha-teacher-auto-surface');
+        if(rect.width>110 && rect.height>34)el.classList.add('wha-teacher-auto-surface');
       }
     });
+
     fixTextContrast(document.body);
   }
 
@@ -125,6 +130,9 @@
     document.documentElement.dataset.whaTeacherTheme=t;
     document.body.dataset.whaTeacherTheme=t;
     localStorage.setItem(KEY,t);
+    document.querySelectorAll('.wha-teacher-contrast-dark,.wha-teacher-contrast-light').forEach(el=>{
+      el.classList.remove('wha-teacher-contrast-dark','wha-teacher-contrast-light');
+    });
 
     const label=document.querySelector('[data-teacher-theme-label]');
     if(label)label.textContent='Theme · '+THEMES[t][0];

@@ -74,27 +74,20 @@
   }
 
   function normalizeAdminSurfaces(){
-    document.querySelectorAll(
-      '.wha-admin-auto-surface,.wha-admin-auto-control,.wha-admin-contrast-dark,.wha-admin-contrast-light'
-    ).forEach(el=>{
-      el.classList.remove(
-        'wha-admin-auto-surface','wha-admin-auto-control',
-        'wha-admin-contrast-dark','wha-admin-contrast-light'
-      );
-    });
-
+    // IMPORTANT: this function is intentionally monotonic for surface classes.
+    // Once a neutral legacy surface is mapped to theme tokens, we keep that
+    // class. Repeated remove/re-add cycles caused animation replay / blinking.
     document.querySelectorAll(
       'main,form,fieldset,article,section,header,footer,div,table,thead,tbody,tr,td,th,input,select,textarea,button'
     ).forEach(el=>{
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-admin-sidebar,.wha-admin-theme-modal,.wha-admin-overview'))return;
+      if(el.classList.contains('wha-admin-auto-surface') || el.classList.contains('wha-admin-auto-control'))return;
 
       const cs=getComputedStyle(el);
       const bg=adminRgb(cs.backgroundColor);
       if(!bg || bg.a<.62)return;
 
-      // Neutral pale/white surfaces are mapped to the selected theme.
-      // Coloured semantic statuses remain untouched.
       const neutralLight=adminLum(bg)>.76 && adminSat(bg)<.24;
       if(!neutralLight)return;
 
@@ -107,13 +100,14 @@
       }
     });
 
-    // Text readability guard.
+    // Contrast classes are also stable between theme changes.
     document.querySelectorAll(
       'h1,h2,h3,h4,h5,h6,p,small,strong,label,a,span,td,th,button'
     ).forEach(el=>{
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-admin-sidebar,.wha-admin-theme-modal'))return;
       if(!String(el.textContent||'').trim())return;
+      if(el.classList.contains('wha-admin-contrast-dark') || el.classList.contains('wha-admin-contrast-light'))return;
 
       const fg=adminRgb(getComputedStyle(el).color);
       const bg=adminNearestBg(el);
@@ -134,7 +128,7 @@
   function watchAdminSurfaces(){
     if(adminSurfaceObserver)return;
     adminSurfaceObserver=new MutationObserver(queueAdminSurfaceNormalize);
-    adminSurfaceObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});
+    adminSurfaceObserver.observe(document.body,{childList:true,subtree:true});
   }
 
   function saved(){const x=localStorage.getItem(KEY)||'light'; return THEMES[x]?x:'light';}
@@ -143,6 +137,9 @@
     document.documentElement.dataset.whaAdminTheme=t;
     document.body.dataset.whaAdminTheme=t;
     localStorage.setItem(KEY,t);
+    document.querySelectorAll('.wha-admin-contrast-dark,.wha-admin-contrast-light').forEach(el=>{
+      el.classList.remove('wha-admin-contrast-dark','wha-admin-contrast-light');
+    });
     ensureCodeBg();
     document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('is-selected',b.dataset.themeChoice===t));
     queueAdminSurfaceNormalize();

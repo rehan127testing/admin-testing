@@ -365,3 +365,15 @@ body.wha-admin-shell[data-wha-admin-theme]:not([data-wha-admin-theme="light"]) [
   color:var(--wa-text)!important;
   border-color:var(--wa-border)!important;
 }
+
+
+/* 2026-09-16 — Professional eye-comfort polish */
+html[data-wha-admin-theme="light"],body[data-wha-admin-theme="light"]{
+  --wa-bg:#e9eef6;--wa-surface:#f5f7fb;--wa-surface-2:#edf2f8;
+  --wa-text:#172238;--wa-muted:#5f6f89;--wa-border:#c9d4e3;
+  --wa-primary:#4657d9;--wa-primary-2:#6e55d9;
+}
+body.wha-admin-shell .wha-admin-auto-surface{box-shadow:0 8px 24px color-mix(in srgb,var(--wa-primary) 6%,transparent)}
+body.wha-admin-shell :is(input,select,textarea):focus{
+  outline:2px solid color-mix(in srgb,var(--wa-primary) 35%,transparent);outline-offset:1px
+}

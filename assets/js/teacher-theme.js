@@ -47,13 +47,43 @@
     return mx===0?0:(mx-mn)/mx;
   }
 
+
+  function contrastRatio(a,b){
+    const hi=Math.max(a,b), lo=Math.min(a,b);
+    return (hi+.05)/(lo+.05);
+  }
+  function nearestPaintedBackground(el){
+    let node=el;
+    while(node && node!==document.body){
+      const cs=getComputedStyle(node);
+      if(/gradient/i.test(cs.backgroundImage||''))return {rgb:null,node,gradient:true};
+      const bg=rgb(cs.backgroundColor);
+      if(bg && bg.a>=.70)return {rgb:bg,node,gradient:false};
+      node=node.parentElement;
+    }
+    return {rgb:rgb(getComputedStyle(document.body).backgroundColor),node:document.body,gradient:false};
+  }
+  function fixTextContrast(root){
+    root.querySelectorAll('h1,h2,h3,h4,h5,h6,p,small,strong,label,a,button,span,td,th').forEach(el=>{
+      if(!(el instanceof HTMLElement))return;
+      if(el.closest('.wha-teacher-sidebar,.wha-teacher-theme-modal'))return;
+      if(!String(el.textContent||'').trim())return;
+      const fg=rgb(getComputedStyle(el).color);
+      const bgInfo=nearestPaintedBackground(el);
+      if(bgInfo.gradient||!fg||!bgInfo.rgb)return;
+      const fl=lum(fg), bl=lum(bgInfo.rgb);
+      if(contrastRatio(fl,bl)>=4.5)return;
+      el.classList.add(bl>.5?'wha-teacher-contrast-dark':'wha-teacher-contrast-light');
+    });
+  }
+
   function normalize(){
     if(!document.body.classList.contains('wha-teacher-shell'))return;
     const theme=saved();
     const light=(theme==='light');
 
-    document.querySelectorAll('.wha-teacher-auto-surface,.wha-teacher-auto-control').forEach(el=>{
-      el.classList.remove('wha-teacher-auto-surface','wha-teacher-auto-control');
+    document.querySelectorAll('.wha-teacher-auto-surface,.wha-teacher-auto-control,.wha-teacher-gradient-surface,.wha-teacher-contrast-dark,.wha-teacher-contrast-light').forEach(el=>{
+      el.classList.remove('wha-teacher-auto-surface','wha-teacher-auto-control','wha-teacher-gradient-surface','wha-teacher-contrast-dark','wha-teacher-contrast-light');
     });
     if(light)return;
 
@@ -66,6 +96,10 @@
       if(!(el instanceof HTMLElement))return;
       if(el.closest('.wha-teacher-sidebar,.wha-teacher-theme-modal'))return;
       const cs=getComputedStyle(el);
+      const rect=el.getBoundingClientRect();
+      if(/gradient/i.test(cs.backgroundImage||'') && rect.width>250 && rect.height>=42 && rect.height<=180){
+        el.classList.add('wha-teacher-gradient-surface');
+      }
       const bg=rgb(cs.backgroundColor);
       if(!bg || bg.a<.65)return;
       const isNeutralLight=lum(bg)>.82 && saturation(bg)<.18;
@@ -79,6 +113,7 @@
         if(r.width>110 && r.height>34)el.classList.add('wha-teacher-auto-surface');
       }
     });
+    fixTextContrast(document.body);
   }
 
   function queueNormalize(){

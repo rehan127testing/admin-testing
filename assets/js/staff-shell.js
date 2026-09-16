@@ -115,11 +115,45 @@
     aside.appendChild(brand('Teacher workspace'));
     const nav = document.createElement('nav'); nav.className='wha-staff-sidebar__nav';
     const icons={'Boss Papers':'◇','Grading':'✓','Rechecking':'↪'};
+    const teacherButtons={};
+
+    function syncTeacherActive(preferred){
+      let activeLabel=preferred||'';
+      if(!activeLabel){
+        TEACHER_NAV.forEach(label=>{
+          const orig=byText(label);
+          if(!orig)return;
+          if(
+            orig.getAttribute('aria-selected')==='true' ||
+            orig.getAttribute('aria-current')==='page' ||
+            /(^|\s)(active|is-active|selected)(\s|$)/i.test(orig.className||'')
+          ) activeLabel=label;
+        });
+      }
+      if(!activeLabel)activeLabel='Boss Papers';
+      Object.entries(teacherButtons).forEach(([label,btn])=>{
+        const active=(label===activeLabel);
+        btn.classList.toggle('is-active',active);
+        if(active)btn.setAttribute('aria-current','page'); else btn.removeAttribute('aria-current');
+      });
+    }
+
     TEACHER_NAV.forEach(label=>{
       const orig=byText(label); if(!orig)return;
-      const b=navButton(label,icons[label]); b.addEventListener('click',()=>orig.click()); nav.appendChild(b);
+      const b=navButton(label,icons[label]);
+      teacherButtons[label]=b;
+      b.addEventListener('click',()=>{
+        syncTeacherActive(label);
+        orig.click();
+        requestAnimationFrame(()=>syncTeacherActive());
+        setTimeout(()=>syncTeacherActive(),80);
+      });
+      nav.appendChild(b);
+      const observer=new MutationObserver(()=>syncTeacherActive());
+      observer.observe(orig,{attributes:true,attributeFilter:['class','aria-selected','aria-current']});
     });
     aside.appendChild(nav);
+    syncTeacherActive();
 
     const signout = clickables().find(el=>/^sign\s*out$/i.test(norm(el.textContent||el.value)));
     if(signout){

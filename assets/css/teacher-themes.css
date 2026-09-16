@@ -85,3 +85,45 @@ body.wha-teacher-shell .wha-teacher-theme-button{margin-bottom:7px}
 .wha-teacher-theme-card--ember .wha-teacher-theme-preview{background:linear-gradient(135deg,#450a0a,#f97316)}
 @media(max-width:760px){.wha-teacher-theme-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.wha-teacher-theme-grid{grid-template-columns:1fr}}
+
+
+/* 2026-09-16 — Professional eye-comfort + contrast polish */
+html[data-wha-teacher-theme="light"],body[data-wha-teacher-theme="light"]{
+  --wt-bg:#eaf0f7;--wt-surface:#f6f8fb;--wt-surface2:#edf2f8;
+  --wt-text:#17243b;--wt-muted:#60708a;--wt-border:#cbd6e5;
+  --wt-primary:#4657d9;--wt-secondary:#7554db;--wt-accent:#2d6cdf
+}
+html[data-wha-teacher-theme="rose"],body[data-wha-teacher-theme="rose"]{
+  --wt-bg:#f3e9ee;--wt-surface:#faf5f7;--wt-surface2:#f2e9ed;--wt-text:#4b1f33;--wt-muted:#805b6c;--wt-border:#ddc6d0
+}
+html[data-wha-teacher-theme="candy"],body[data-wha-teacher-theme="candy"]{
+  --wt-bg:#f2e9f3;--wt-surface:#faf6fb;--wt-surface2:#efe8f2;--wt-text:#47234d;--wt-muted:#775b7c;--wt-border:#d8c8dc
+}
+html[data-wha-teacher-theme="sky"],body[data-wha-teacher-theme="sky"]{
+  --wt-bg:#e8eef7;--wt-surface:#f6f8fb;--wt-surface2:#edf2f8;--wt-text:#183252;--wt-muted:#60758e;--wt-border:#c9d8e7
+}
+html[data-wha-teacher-theme="mint"],body[data-wha-teacher-theme="mint"]{
+  --wt-bg:#e7f1ed;--wt-surface:#f4f8f6;--wt-surface2:#eaf2ef;--wt-text:#173b33;--wt-muted:#5d786f;--wt-border:#c5d9d1
+}
+html[data-wha-teacher-theme="lavender"],body[data-wha-teacher-theme="lavender"]{
+  --wt-bg:#ece9f4;--wt-surface:#f7f5fa;--wt-surface2:#eeeaf5;--wt-text:#35265a;--wt-muted:#6e6488;--wt-border:#d1cae2
+}
+body.wha-teacher-shell .wha-teacher-gradient-surface{color:#fff!important}
+body.wha-teacher-shell .wha-teacher-gradient-surface :is(h1,h2,h3,h4,h5,h6,p,strong,label,a,button,span){
+  color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.18)
+}
+body.wha-teacher-shell .wha-teacher-gradient-surface :is(input,select,textarea,[class*="chip"],[class*="badge"]){
+  color:var(--wt-text)!important;text-shadow:none!important
+}
+body.wha-teacher-shell .wha-teacher-contrast-dark,
+body.wha-teacher-shell .wha-teacher-contrast-dark *{color:#172238!important;text-shadow:none!important}
+body.wha-teacher-shell .wha-teacher-contrast-light,
+body.wha-teacher-shell .wha-teacher-contrast-light *{color:#f8fafc!important;text-shadow:0 1px 2px rgba(0,0,0,.16)!important}
+body.wha-teacher-shell .wha-staff-nav-item.is-active{
+  background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(255,255,255,.12))!important;
+  border-color:rgba(255,255,255,.32)!important;
+  box-shadow:inset 4px 0 0 #fbbf24,0 10px 22px rgba(15,23,42,.12)!important
+}
+body.wha-teacher-shell :is(input,select,textarea):focus{
+  outline:2px solid color-mix(in srgb,var(--wt-primary) 36%,transparent);outline-offset:1px
+}

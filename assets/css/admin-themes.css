@@ -338,3 +338,30 @@ body[data-wha-admin-theme="hacker"] .wha-admin-live-dot{
     padding:5px 10px;
   }
 }
+
+
+/* 2026-09-16 — Theme-consistency layer for existing Admin tabs */
+body.wha-admin-shell .wha-admin-auto-surface{
+  background:var(--wa-surface)!important;
+  color:var(--wa-text)!important;
+  border-color:var(--wa-border)!important;
+}
+body.wha-admin-shell .wha-admin-auto-control{
+  background:var(--wa-surface-2)!important;
+  color:var(--wa-text)!important;
+  border-color:var(--wa-border)!important;
+}
+body.wha-admin-shell .wha-admin-auto-surface :is(h1,h2,h3,h4,h5,h6,strong,label,span,p,small,td,th),
+body.wha-admin-shell .wha-admin-auto-control{
+  text-shadow:none!important;
+}
+body.wha-admin-shell :is(input,select,textarea)::placeholder{color:var(--wa-muted)!important}
+body.wha-admin-shell :is(select option,optgroup){background:var(--wa-surface)!important;color:var(--wa-text)!important}
+body.wha-admin-shell[data-wha-admin-theme]:not([data-wha-admin-theme="light"]) [style*="background:#fff"],
+body.wha-admin-shell[data-wha-admin-theme]:not([data-wha-admin-theme="light"]) [style*="background: #fff"],
+body.wha-admin-shell[data-wha-admin-theme]:not([data-wha-admin-theme="light"]) [style*="background:white"],
+body.wha-admin-shell[data-wha-admin-theme]:not([data-wha-admin-theme="light"]) [style*="background: white"]{
+  background:var(--wa-surface)!important;
+  color:var(--wa-text)!important;
+  border-color:var(--wa-border)!important;
+}

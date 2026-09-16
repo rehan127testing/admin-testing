@@ -78,6 +78,24 @@
     return b;
   }
 
+
+  function ensureTeacherEnhancements() {
+    if (!document.querySelector('link[data-wha-teacher-themes]')) {
+      const css=document.createElement('link');
+      css.rel='stylesheet';
+      css.href='assets/css/teacher-themes.css';
+      css.dataset.whaTeacherThemes='true';
+      document.head.appendChild(css);
+    }
+    if (!document.querySelector('script[data-wha-teacher-theme]')) {
+      const js=document.createElement('script');
+      js.src='assets/js/teacher-theme.js';
+      js.defer=true;
+      js.dataset.whaTeacherTheme='true';
+      document.body.appendChild(js);
+    }
+  }
+
   function removeTeacherSidebar() {
     document.querySelector('.wha-teacher-sidebar')?.remove();
     document.body.classList.remove('wha-teacher-shell');
@@ -85,7 +103,7 @@
 
   function setupTeacher() {
     if (teacherLoginVisible()) { removeTeacherSidebar(); return false; }
-    if (document.querySelector('.wha-teacher-sidebar')) return true;
+    if (document.querySelector('.wha-teacher-sidebar')) { ensureTeacherEnhancements(); return true; }
 
     const originals = TEACHER_NAV.map(byText).filter(Boolean);
     if (originals.length < 2) return false;
@@ -111,6 +129,7 @@
 
     document.body.insertBefore(aside,document.body.firstChild);
     document.body.classList.add('wha-teacher-shell');
+    ensureTeacherEnhancements();
     return true;
   }
 

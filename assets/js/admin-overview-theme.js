@@ -92,14 +92,103 @@
     let o=document.getElementById('wha-admin-overview'); if(o)return o;
     o=document.createElement('section'); o.id='wha-admin-overview'; o.className='wha-admin-overview'; o.hidden=true;
     o.innerHTML=`<div class="wha-admin-overview__inner">
-      <header class="wha-admin-overview__hero"><div><span class="wha-admin-eyebrow">W.H. Academy command center</span><h1>Welcome back, Admin 👋</h1><p>Live academy snapshot from existing authenticated Admin routes.</p></div><div class="wha-admin-overview__hero-actions"><span id="wha-overview-date"></span><button id="wha-overview-refresh">Refresh</button></div></header>
-      <div class="wha-admin-kpis">${kpi('students','Students','Total enrollments','◉')}${kpi('active','Active','Active students','✓')}${kpi('teachers','Teachers','Active teachers','◆')}${kpi('papers','Boss Papers','All papers','▤')}${kpi('rechecks','Rechecks','Open claims','↪')}</div>
-      <div class="wha-admin-dashboard-grid">
-        <article class="wha-admin-dash-card wha-admin-dash-card--wide"><div class="wha-admin-card-head"><div><span class="wha-admin-eyebrow">Enrollment intelligence</span><h2>Class distribution</h2></div><span class="wha-admin-live-dot">Live</span></div><div id="wha-class-bars" class="wha-admin-class-bars"><p class="wha-admin-muted">Loading…</p></div></article>
-        <article class="wha-admin-dash-card"><div class="wha-admin-card-head"><div><span class="wha-admin-eyebrow">Status</span><h2>Student accounts</h2></div></div><div id="wha-status-list" class="wha-admin-status-list"><p class="wha-admin-muted">Loading…</p></div></article>
-        <article class="wha-admin-dash-card"><div class="wha-admin-card-head"><div><span class="wha-admin-eyebrow">Shortcuts</span><h2>Quick actions</h2></div></div><div class="wha-admin-quick-actions">${quick('Students')}${quick('Teachers')}${quick('Boss Papers')}${quick('Rechecking')}${quick('Analytics')}<button type="button" data-open-theme>Theme<span>→</span></button></div></article>
-        <article class="wha-admin-dash-card wha-admin-system-card"><div class="wha-admin-card-head"><div><span class="wha-admin-eyebrow">Connection</span><h2>System status</h2></div></div><p id="wha-system-status" class="wha-admin-system-status"><span></span>Checking Admin API…</p><small>No direct browser-to-database access is added.</small></article>
-      </div></div>`;
+      <header class="wha-admin-overview__hero">
+        <div>
+          <span class="wha-admin-eyebrow">W.H. Academy command center</span>
+          <h1>Welcome back, Admin 👋</h1>
+          <p>Live academy snapshot from existing authenticated Admin routes.</p>
+        </div>
+        <div class="wha-admin-overview__hero-actions">
+          <span id="wha-overview-date"></span>
+          <button id="wha-overview-refresh">Refresh</button>
+        </div>
+      </header>
+
+      <div class="wha-admin-kpis">
+        ${kpi('students','Students','Total enrollments','◉')}
+        ${kpi('active','Active','Active students','✓')}
+        ${kpi('teachers','Teachers','Active teachers','◆')}
+        ${kpi('papers','Boss Papers','All papers','▤')}
+        ${kpi('rechecks','Rechecks','Open claims','↪')}
+      </div>
+
+      <div class="wha-admin-primary-grid">
+        <article class="wha-admin-dash-card wha-admin-activity-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Learning activity</span>
+              <h2>Student activity</h2>
+              <p id="wha-activity-summary" class="wha-admin-card-subtitle">Question attempts recorded across the academy.</p>
+            </div>
+            <span class="wha-admin-live-dot">Last 7 days</span>
+          </div>
+          <div id="wha-admin-activity-chart" class="wha-admin-activity-chart" aria-label="Student activity chart">
+            <div class="wha-admin-chart-empty">Loading activity…</div>
+          </div>
+        </article>
+
+        <article class="wha-admin-dash-card wha-admin-recent-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Workflow</span>
+              <h2>Recent actions</h2>
+            </div>
+          </div>
+          <div id="wha-admin-recent-actions" class="wha-admin-recent-actions">
+            <p class="wha-admin-muted">Loading recent actions…</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="wha-admin-secondary-grid">
+        <article class="wha-admin-dash-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Enrollment intelligence</span>
+              <h2>Class distribution</h2>
+            </div>
+            <span class="wha-admin-live-dot">Live</span>
+          </div>
+          <div id="wha-class-bars" class="wha-admin-class-bars"><p class="wha-admin-muted">Loading…</p></div>
+        </article>
+
+        <article class="wha-admin-dash-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Status</span>
+              <h2>Student accounts</h2>
+            </div>
+          </div>
+          <div id="wha-status-list" class="wha-admin-status-list"><p class="wha-admin-muted">Loading…</p></div>
+        </article>
+
+        <article class="wha-admin-dash-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Shortcuts</span>
+              <h2>Quick actions</h2>
+            </div>
+          </div>
+          <div class="wha-admin-quick-actions">
+            ${quick('Students')}${quick('Teachers')}${quick('Boss Papers')}
+            ${quick('Rechecking')}${quick('Analytics')}
+            <button type="button" data-open-theme>Theme<span>→</span></button>
+          </div>
+        </article>
+
+        <article class="wha-admin-dash-card wha-admin-system-card">
+          <div class="wha-admin-card-head">
+            <div>
+              <span class="wha-admin-eyebrow">Connection</span>
+              <h2>System status</h2>
+            </div>
+          </div>
+          <p id="wha-system-status" class="wha-admin-system-status"><span></span>Checking Admin API…</p>
+          <small>No direct browser-to-database access is added.</small>
+        </article>
+      </div>
+    </div>`;
+
     document.body.appendChild(o);
     o.querySelector('#wha-overview-date').textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(new Date());
     o.querySelector('#wha-overview-refresh').addEventListener('click',load);
@@ -122,22 +211,217 @@
     if(!rows.length){h.innerHTML='<p class="wha-admin-muted">No status data yet.</p>';return;}
     h.innerHTML=rows.map(([k,v])=>`<div><span><i class="status-${String(k).toLowerCase().replace(/[^a-z0-9]+/g,'-')}"></i>${esc(k)}</span><strong>${num(v)}</strong></div>`).join('');
   }
+
+  function isoDay(date){
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,'0');
+    const d=String(date.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function lastSevenDays(){
+    const days=[];
+    const end=new Date();
+    end.setHours(12,0,0,0);
+    for(let i=6;i>=0;i--){
+      const d=new Date(end);
+      d.setDate(end.getDate()-i);
+      days.push({key:isoDay(d),date:d});
+    }
+    return days;
+  }
+
+  function aggregateActivity(trend){
+    const days=lastSevenDays();
+    const byDay={};
+    days.forEach(x=>byDay[x.key]={attempts:0,correct:0});
+    (Array.isArray(trend)?trend:[]).forEach(row=>{
+      const key=String(row?.date||'').slice(0,10);
+      if(!byDay[key])return;
+      byDay[key].attempts+=num(row?.total);
+      byDay[key].correct+=num(row?.correct);
+    });
+    return days.map(x=>({
+      key:x.key,
+      label:new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short'}).format(x.date),
+      attempts:byDay[x.key].attempts,
+      correct:byDay[x.key].correct
+    }));
+  }
+
+  function renderActivity(trend){
+    const host=document.getElementById('wha-admin-activity-chart');
+    const summary=document.getElementById('wha-activity-summary');
+    if(!host)return;
+
+    const rows=aggregateActivity(trend);
+    const total=rows.reduce((s,r)=>s+r.attempts,0);
+    const correct=rows.reduce((s,r)=>s+r.correct,0);
+    const accuracy=total?Math.round(correct/total*100):0;
+
+    if(summary){
+      summary.textContent=total
+        ? `${total} question attempt${total===1?'':'s'} · ${accuracy}% correct in the last 7 days`
+        : 'No question attempts recorded in the last 7 days.';
+    }
+
+    const w=760,h=260,left=46,right=18,top=18,bottom=42;
+    const plotW=w-left-right, plotH=h-top-bottom;
+    const max=Math.max(4,...rows.map(r=>r.attempts));
+    const ceil=Math.max(4,Math.ceil(max/4)*4);
+    const y=v=>top+plotH-(v/ceil)*plotH;
+    const x=i=>left+(rows.length===1?plotW/2:(i/(rows.length-1))*plotW);
+
+    const grid=[0,.25,.5,.75,1].map(fr=>{
+      const value=Math.round(ceil*(1-fr));
+      const yy=top+plotH*fr;
+      return `<g class="wha-chart-grid"><line x1="${left}" y1="${yy}" x2="${w-right}" y2="${yy}"></line><text x="${left-10}" y="${yy+4}" text-anchor="end">${value}</text></g>`;
+    }).join('');
+
+    const points=rows.map((r,i)=>`${x(i)},${y(r.attempts)}`).join(' ');
+    const area=`${left},${top+plotH} ${points} ${w-right},${top+plotH}`;
+
+    const dots=rows.map((r,i)=>`
+      <g class="wha-chart-point" data-attempts="${r.attempts}" data-label="${esc(r.label)}">
+        <circle cx="${x(i)}" cy="${y(r.attempts)}" r="5"></circle>
+        <title>${esc(r.label)}: ${r.attempts} attempt${r.attempts===1?'':'s'}</title>
+      </g>`).join('');
+
+    const labels=rows.map((r,i)=>`<text class="wha-chart-x" x="${x(i)}" y="${h-14}" text-anchor="middle">${esc(r.label)}</text>`).join('');
+
+    host.innerHTML=`
+      <svg class="wha-admin-activity-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Question attempts in the last seven days">
+        <defs>
+          <linearGradient id="whaActivityFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--wa-primary)" stop-opacity=".28"></stop>
+            <stop offset="100%" stop-color="var(--wa-primary)" stop-opacity=".02"></stop>
+          </linearGradient>
+        </defs>
+        ${grid}
+        <polygon class="wha-chart-area" points="${area}"></polygon>
+        <polyline class="wha-chart-line" points="${points}"></polyline>
+        ${dots}
+        ${labels}
+      </svg>`;
+  }
+
+  function actionTime(row){
+    const keys=['resolvedAt','activatedAt','updatedAt','createdAt','submittedAt','adminReviewedAt'];
+    for(const k of keys){
+      const value=row&&row[k];
+      if(value){
+        const t=new Date(value).getTime();
+        if(Number.isFinite(t))return {time:t,key:k,value};
+      }
+    }
+    return null;
+  }
+
+  function relativeTime(ms){
+    const diff=Math.max(0,Date.now()-ms);
+    const min=Math.floor(diff/60000);
+    if(min<1)return 'just now';
+    if(min<60)return `${min} min ago`;
+    const hr=Math.floor(min/60);
+    if(hr<24)return `${hr} hr${hr===1?'':'s'} ago`;
+    const day=Math.floor(hr/24);
+    if(day<7)return `${day} day${day===1?'':'s'} ago`;
+    return new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short'}).format(new Date(ms));
+  }
+
+  function renderRecentActions(teachers,papers,rechecks){
+    const host=document.getElementById('wha-admin-recent-actions');
+    if(!host)return;
+
+    const items=[];
+
+    (Array.isArray(teachers)?teachers:[]).forEach(t=>{
+      const at=actionTime(t); if(!at)return;
+      items.push({
+        time:at.time,
+        kind:'teacher',
+        title:`Teacher ${esc(t.fullName||t.email||'added')}`,
+        detail:String(t.status||'Teacher record updated')
+      });
+    });
+
+    (Array.isArray(papers)?papers:[]).forEach(p=>{
+      const at=actionTime(p); if(!at)return;
+      items.push({
+        time:at.time,
+        kind:'paper',
+        title:`${p.status==='Active'?'Boss paper active':'Boss paper'} · ${esc(p.title||p.paperId||'Paper')}`,
+        detail:[p.subject,p.classLevel?`Class ${p.classLevel}`:''].filter(Boolean).join(' · ')
+      });
+    });
+
+    (Array.isArray(rechecks)?rechecks:[]).forEach(r=>{
+      const at=actionTime(r); if(!at)return;
+      items.push({
+        time:at.time,
+        kind:'recheck',
+        title:`Recheck ${esc(String(r.status||'updated').toLowerCase())}`,
+        detail:`${esc(r.studentName||'Student')} · ${esc(r.subject||'')}`
+      });
+    });
+
+    items.sort((a,b)=>b.time-a.time);
+    const latest=items.slice(0,5);
+
+    if(!latest.length){
+      host.innerHTML='<div class="wha-admin-empty-actions"><strong>No recent workflow events yet</strong><span>New teachers, Boss papers and rechecking activity will appear here.</span></div>';
+      return;
+    }
+
+    const icons={teacher:'◆',paper:'▤',recheck:'↪'};
+    host.innerHTML=latest.map(item=>`
+      <div class="wha-admin-action-row">
+        <span class="wha-admin-action-icon wha-admin-action-icon--${item.kind}">${icons[item.kind]||'•'}</span>
+        <div class="wha-admin-action-copy">
+          <strong>${item.title}</strong>
+          <span>${item.detail||'W.H. Academy workflow'}</span>
+        </div>
+        <time>${relativeTime(item.time)}</time>
+      </div>`).join('');
+  }
+
   async function load(){
-    const st=document.getElementById('wha-system-status'); if(st){st.className='wha-admin-system-status';st.innerHTML='<span></span>Refreshing Admin data…';}
+    const st=document.getElementById('wha-system-status');
+    if(st){st.className='wha-admin-system-status';st.innerHTML='<span></span>Refreshing Admin data…';}
+
     const results=await Promise.allSettled([
-      call('admin/statistics'),call('admin/listTeachers'),call('bossbattle/admin/listPapers'),call('bossbattle/admin/rechecks',{status:'Open'})
+      call('admin/statistics'),
+      call('admin/listTeachers'),
+      call('bossbattle/admin/listPapers'),
+      call('bossbattle/admin/rechecks',{}),
+      call('analytics/contentDifficulty')
     ]);
+
     const stats=results[0].status==='fulfilled'?(results[0].value||{}):{};
     const teachers=results[1].status==='fulfilled'?(results[1].value?.teachers||[]):[];
     const papers=results[2].status==='fulfilled'?(results[2].value?.papers||[]):[];
     const rr=results[3].status==='fulfilled'?(results[3].value||{}):{};
     const rechecks=rr.requests||rr.rechecks||rr.items||[];
-    setKpi('students',num(stats.totalEnrollments)); setKpi('active',num(stats.byStatus?.Active??stats.byStatus?.active));
+    const difficulty=results[4].status==='fulfilled'?(results[4].value||{}):{};
+
+    setKpi('students',num(stats.totalEnrollments));
+    setKpi('active',num(stats.byStatus?.Active??stats.byStatus?.active));
     setKpi('teachers',teachers.filter(t=>String(t.status||'').toLowerCase()==='active').length);
-    setKpi('papers',papers.length); setKpi('rechecks',Array.isArray(rechecks)?rechecks.length:0);
-    renderClasses(stats.byClassLevel||{}); renderStatuses(stats.byStatus||{});
+    setKpi('papers',papers.length);
+    setKpi('rechecks',Array.isArray(rechecks)?rechecks.filter(r=>String(r.status||'').toLowerCase()==='open'&&!r.archivedAt).length:0);
+
+    renderActivity(difficulty.trend||[]);
+    renderRecentActions(teachers,papers,rechecks);
+    renderClasses(stats.byClassLevel||{});
+    renderStatuses(stats.byStatus||{});
+
     const failed=results.filter(r=>r.status==='rejected').length;
-    if(st){st.classList.add(failed?'is-error':'is-ok');st.innerHTML='<span></span>'+(failed?`Loaded with ${failed} unavailable data source${failed===1?'':'s'}`:'Authenticated Admin API connected');}
+    if(st){
+      st.classList.add(failed?'is-error':'is-ok');
+      st.innerHTML='<span></span>'+(failed
+        ? `Loaded with ${failed} unavailable data source${failed===1?'':'s'}`
+        : 'Authenticated Admin API connected');
+    }
   }
   function show(){overview().hidden=false; document.body.classList.add('wha-admin-overview-open'); load();}
   function hide(){const o=document.getElementById('wha-admin-overview'); if(o)o.hidden=true;document.body.classList.remove('wha-admin-overview-open');}

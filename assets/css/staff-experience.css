@@ -346,3 +346,37 @@ body.wha-teacher-shell button{
     height:auto!important;
   }
 }
+
+
+/* ==========================================================================
+   2026-09-17 — FINAL Admin sticky-sidebar viewport lock
+   Sticky was structurally correct, but `overflow-x:hidden` on the Admin body
+   can make the body itself a scroll container. That prevents sticky from
+   behaving like a viewport-locked sidebar in some browser/layout combinations.
+   `overflow-x:clip` prevents horizontal spill without creating that scroll
+   container, so the sidebar can remain sticky to the viewport.
+   ========================================================================== */
+@media (min-width:900px){
+  html{
+    overflow-y:auto!important;
+  }
+
+  body.wha-admin-shell{
+    overflow-x:clip!important;
+    overflow-y:visible!important;
+  }
+
+  body.wha-admin-shell > .wha-admin-sidebar,
+  body.wha-admin-shell .wha-admin-sidebar{
+    position:-webkit-sticky!important;
+    position:sticky!important;
+    top:0!important;
+    height:100vh!important;
+    height:100dvh!important;
+    max-height:100vh!important;
+    max-height:100dvh!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    align-self:flex-start!important;
+  }
+}

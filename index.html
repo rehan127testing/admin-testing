@@ -502,6 +502,14 @@ select.input { appearance: auto; background: var(--surface); }
 /* ---- Insights moderation ---- */
 .ins-controls { display: flex; gap: 8px; align-items: center; }
 .ins-filter { max-width: 150px; }
+/* Insights pager (classic 10-per-page) */
+.ins-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 6px 0 18px; }
+.ins-pager__info { color: var(--muted, #6b7280); font-size: 0.85rem; }
+.ins-pager__btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ins-pager__num { min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--line, #e5e7eb); background: #fff; color: inherit; border-radius: 8px; cursor: pointer; font: inherit; }
+.ins-pager__num:hover { background: var(--hover, #f3f4f6); }
+.ins-pager__num.is-current { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.ins-pager__gap { padding: 0 4px; color: var(--muted, #6b7280); }
 /* Inline admin edit form for an insight */
 .ins-edit { display: flex; flex-direction: column; gap: 6px; }
 .ins-edit__hint { font-size: 0.82rem; color: var(--muted, #6b7280); margin: 2px 0 8px; }
@@ -1154,6 +1162,7 @@ select.input { appearance: auto; background: var(--surface); }
       </header>
 
       <div id="ins-list"><p class="muted">Loading…</p></div>
+      <div id="ins-pager" class="ins-pager" hidden></div>
     </section>
 
     <section data-panel="analytics" hidden>
@@ -2854,42 +2863,77 @@ window.WHAAdminRecheckBridge = {
   // Lazy-rendered so a long feedback list never blocks the panel: everything
   // is fetched once, then drawn in batches as the admin scrolls (IntersectionObserver).
   var insList = [];
-  var insShown = 0;
-  var insObserver = null;
-  var INS_BATCH = 12;
+  var insPage = 1;
+  var INS_PAGE_SIZE = 10;   // classic 10-per-page pager (Prev / 1..N / Next)
 
   function loadInsights() {
     var filter = qs('#ins-filter');
     var status = filter ? filter.value : '';
     var host = qs('#ins-list');
     host.innerHTML = '<p class="muted">Loading…</p>';
-    if (insObserver) { insObserver.disconnect(); insObserver = null; }
     authed('insights/adminList', { status: status })
       .then(function (data) {
         insList = (data && data.insights) || [];
-        insShown = 0;
+        // Guarantee newest-first regardless of backend order (createdAt is ISO).
+        insList.sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
+        insPage = 1;
         host.innerHTML = '';
+        var pager0 = qs('#ins-pager'); if (pager0) { pager0.hidden = true; pager0.innerHTML = ''; }
         if (!insList.length) { host.innerHTML = '<div class="empty"><h2>Nothing here</h2><p>No feedback for this filter yet.</p></div>'; return; }
-        renderMoreInsights();
+        renderInsightsPage();
       })
       .catch(function (e) { host.innerHTML = ''; fail(e, 'Could not load insights.'); });
   }
 
-  function renderMoreInsights() {
+  function insTotalPages() { return Math.max(1, Math.ceil(insList.length / INS_PAGE_SIZE)); }
+
+  function renderInsightsPage() {
     var host = qs('#ins-list');
-    var old = qs('#ins-sentinel'); if (old) old.remove();
-    var slice = insList.slice(insShown, insShown + INS_BATCH);
-    insShown += slice.length;
+    var total = insTotalPages();
+    if (insPage > total) insPage = total;
+    if (insPage < 1) insPage = 1;
+    var start = (insPage - 1) * INS_PAGE_SIZE;
+    var slice = insList.slice(start, start + INS_PAGE_SIZE);
+    host.innerHTML = '';
     slice.forEach(function (it) { host.insertAdjacentHTML('beforeend', insCard(it)); });
-    if (insShown < insList.length) {
-      host.insertAdjacentHTML('beforeend', '<div id="ins-sentinel" style="height:1px;"></div>');
-      var sentinel = qs('#ins-sentinel');
-      if (insObserver) insObserver.disconnect();
-      insObserver = new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting) { insObserver.disconnect(); renderMoreInsights(); }
-      }, { rootMargin: '300px' });
-      insObserver.observe(sentinel);
+    renderInsPager(total, start, slice.length);
+    try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+  }
+
+  function renderInsPager(total, start, shown) {
+    var pager = qs('#ins-pager');
+    if (!pager) return;
+    if (insList.length <= INS_PAGE_SIZE) { pager.hidden = true; pager.innerHTML = ''; return; }
+    pager.hidden = false;
+
+    // Numbered window: always show first + last, plus a few around the current.
+    var nums = [], win = 2;
+    for (var p = 1; p <= total; p++) {
+      if (p === 1 || p === total || (p >= insPage - win && p <= insPage + win)) nums.push(p);
+      else if (nums[nums.length - 1] !== '…') nums.push('…');
     }
+    var numHtml = nums.map(function (p) {
+      if (p === '…') return '<span class="ins-pager__gap">…</span>';
+      var cur = (p === insPage) ? ' is-current' : '';
+      return '<button type="button" class="ins-pager__num' + cur + '" data-act="ins-page" data-page="' + p + '"' +
+        (p === insPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+    }).join('');
+
+    var from = start + 1, to = start + shown;
+    pager.innerHTML =
+      '<div class="ins-pager__info">Showing <strong>' + from + '–' + to + '</strong> of <strong>' + insList.length + '</strong></div>' +
+      '<div class="ins-pager__btns">' +
+        '<button type="button" class="btn btn--quiet btn--sm" data-act="ins-page" data-page="' + (insPage - 1) + '"' + (insPage <= 1 ? ' disabled' : '') + '>Prev</button>' +
+        numHtml +
+        '<button type="button" class="btn btn--quiet btn--sm" data-act="ins-page" data-page="' + (insPage + 1) + '"' + (insPage >= total ? ' disabled' : '') + '>Next</button>' +
+      '</div>';
+  }
+
+  function gotoInsPage(p) {
+    p = parseInt(p, 10);
+    if (isNaN(p)) return;
+    insPage = p;
+    renderInsightsPage();
   }
 
   function insBlock(title, text) {
@@ -3085,6 +3129,7 @@ window.WHAAdminRecheckBridge = {
       if (act.dataset.act === 'ins-edit') return openInsEdit(act.dataset.id);
       if (act.dataset.act === 'ins-edit-save') return saveInsEdit(act.dataset.id, act);
       if (act.dataset.act === 'ins-edit-cancel') return loadInsights();
+      if (act.dataset.act === 'ins-page') return gotoInsPage(act.dataset.page);
       return;
     }
     var tog = e.target.closest ? e.target.closest('[data-toggle]') : null;

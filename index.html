@@ -707,6 +707,15 @@ select.input { appearance: auto; background: var(--surface); }
 
 </style>
 <link rel="stylesheet" href="assets/css/rechecking.css">
+  <style>
+    .cell-cb { width:34px; text-align:center; }
+    .cell-cb input { width:16px; height:16px; cursor:pointer; }
+    .cell-dates { font-size:.72rem; color:var(--muted,#64748b); white-space:nowrap; line-height:1.4; }
+    .cell-dates b { color:#475569; font-weight:600; }
+    .stu-toolbar { display:flex; align-items:center; gap:.75rem; margin:-.4rem 0 1rem; flex-wrap:wrap; }
+    .stu-toolbar select { max-width:200px; }
+    .bulk-bar { display:flex; align-items:center; gap:.6rem; margin-left:auto; font-size:.85rem; color:#334155; }
+  </style>
 </head>
 
 <body>
@@ -787,6 +796,10 @@ select.input { appearance: auto; background: var(--surface); }
         <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
         Students
       </button>
+      <button class="side__item" data-view="archived" type="button">
+        <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7l1 13h12l1-13M9 11v6M15 11v6M9 7V4h6v3"/></svg>
+        Archived
+      </button>
       <button class="side__item" data-view="overview" type="button">
         <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
         Overview
@@ -846,7 +859,34 @@ select.input { appearance: auto; background: var(--surface); }
         <button class="btn btn--primary" type="submit">Search</button>
       </form>
 
+      <div class="stu-toolbar">
+        <label class="sr-only" for="f-filter">Filter students</label>
+        <select class="input" id="f-filter">
+          <option value="all">All</option>
+          <option value="no-account">No account yet</option>
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="expired">Expired</option>
+        </select>
+        <div id="bulk-bar" class="bulk-bar" hidden>
+          <span id="bulk-count">0 selected</span>
+          <button class="btn btn--danger btn--sm" data-act="archive-selected" type="button">Delete selected</button>
+        </div>
+      </div>
+
       <div id="results" aria-live="polite"></div>
+    </section>
+
+    <section data-panel="archived" hidden>
+      <header class="head">
+        <div>
+          <h1 class="head__title">Archived</h1>
+          <p class="head__sub">Deleted enrollments are kept here so you can restore them. Registered accounts are never auto-deleted.</p>
+        </div>
+        <button class="btn btn--quiet btn--sm" data-act="refresh-archived" type="button">Refresh</button>
+      </header>
+      <div id="archived-results" aria-live="polite"></div>
     </section>
 
     <section data-panel="overview" hidden>
@@ -1499,44 +1539,131 @@ window.WHAAdminRecheckBridge = {
 
   function renderResults(list, query) {
     var host = qs('#results');
-    results = Array.isArray(list) ? list : [];
+    if (Array.isArray(list)) results = list;
+    if (!Array.isArray(results)) results = [];
 
     if (!results.length) {
       host.innerHTML = '<div class="empty"><h2>No students matched</h2><p>' +
         (query ? 'Nothing found for &ldquo;' + esc(query) + '&rdquo;. Try part of a name, an email, or a Student ID.'
                : 'There are no enrollment rows yet.') + '</p></div>';
+      updateBulkBar();
       return;
     }
 
-    var rows = results.map(function (s) {
+    var shown = filteredResults();
+    if (!shown.length) {
+      host.innerHTML = '<div class="empty"><h2>Nothing in this filter</h2><p>Try a different filter above.</p></div>';
+      updateBulkBar();
+      return;
+    }
+
+    var rows = shown.map(function (s) {
       var sid = String(s.studentId || '').trim();
       var status = normalizeStatus(s.status);
-      // Addressed by Student ID when it has one, by enrollment ID when it does
-      // not — a row awaiting activation has no Student ID yet.
       var key = sid || String(s.enrollmentId || '');
-
-      // Only meaningful once an ID exists: before that, "no account" is simply
-      // where everyone starts and says nothing worth flagging.
       var account = !sid ? '<span class="muted">&mdash;</span>'
         : s.hasAccount ? '<span class="dot dot--ok">Registered</span>'
         : '<span class="dot dot--warn">No account yet</span>';
+      // Only account-less rows are selectable for archive (registered accounts are protected).
+      var cb = s.hasAccount ? '<td class="cell-cb"></td>'
+        : '<td class="cell-cb"><input type="checkbox" class="row-cb" data-key="' + esc(key) + '" aria-label="Select"></td>';
 
-      return '<tr>' +
+      return '<tr>' + cb +
         '<td><div class="cell-name">' + esc(s.fullName || '—') + '</div>' +
         '<div class="cell-sub">' + esc(s.email || '') + '</div></td>' +
         '<td class="cell-id">' + (sid ? esc(sid) : '<span class="muted">not issued</span>') + '</td>' +
         '<td>' + esc(s.enrolledScope || '—') + '</td>' +
         '<td>' + account + '</td>' +
         '<td><span class="badge ' + badgeFor(status) + '">' + esc(status) + '</span></td>' +
+        '<td class="cell-dates"><div><b>Sub</b> ' + fmtDate(s.submittedAt) + '</div>' +
+        '<div><b>Act</b> ' + fmtDate(s.activatedAt) + '</div>' +
+        '<div><b>Reg</b> ' + fmtDate(s.registeredAt) + '</div></td>' +
         '<td class="cell-act"><button class="btn btn--secondary btn--sm" data-act="status" data-key="' +
         esc(key) + '">Change status</button></td></tr>';
     }).join('');
 
     host.innerHTML =
       '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Student</th><th>Student ID</th><th>Scope</th><th>Account</th><th>Status</th><th></th></tr></thead>' +
+      '<thead><tr><th class="cell-cb"><input type="checkbox" id="cb-all" aria-label="Select all"></th>' +
+      '<th>Student</th><th>Student ID</th><th>Scope</th><th>Account</th><th>Status</th><th>Dates</th><th></th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>' +
-      '<p class="count">' + results.length + ' shown</p>';
+      '<p class="count">' + shown.length + ' shown</p>';
+    updateBulkBar();
+  }
+
+  // ---- admin cleanup helpers (dates / filter / archive) ----
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso); if (isNaN(d.getTime())) return '—';
+    var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var hh = d.getHours(), ap = hh < 12 ? 'am' : 'pm', h12 = (hh % 12) || 12;
+    return d.getDate() + ' ' + mon[d.getMonth()] + ' ' + (d.getFullYear() % 100) + ', ' + h12 + ':' + ('0'+d.getMinutes()).slice(-2) + ap;
+  }
+  function currentFilter() { var f = qs('#f-filter'); return f ? f.value : 'all'; }
+  function filteredResults() {
+    var f = currentFilter();
+    return (results || []).filter(function (s) {
+      if (f === 'all') return true;
+      if (f === 'no-account') return !s.hasAccount;
+      return normalizeStatus(s.status).toLowerCase() === f;
+    });
+  }
+  function selectedKeys() {
+    return qsa('.row-cb').filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.key; });
+  }
+  function updateBulkBar() {
+    var bar = qs('#bulk-bar'); if (!bar) return;
+    var n = selectedKeys().length;
+    bar.hidden = n === 0;
+    var c = qs('#bulk-count'); if (c) c.textContent = n + ' selected';
+  }
+  function archiveSelected() {
+    var keys = selectedKeys();
+    if (!keys.length) { toast('Select at least one row first.', 'warn'); return; }
+    if (!window.confirm('Move ' + keys.length + ' selected enrollment(s) to Archived?\n\nRegistered accounts are skipped. You can restore archived ones later.')) return;
+    authed('admin/archiveEnrollments', { keys: keys, reason: 'manual' })
+      .then(function (d) {
+        var msg = 'Archived ' + ((d && d.archived) || 0) + '.';
+        if (d && d.skipped && d.skipped.length) msg += ' Skipped ' + d.skipped.length + ' (registered/other).';
+        toast(msg, 'ok');
+        refresh();
+      })
+      .catch(function (e) { fail(e, 'Could not archive the selected rows.'); });
+  }
+  function loadArchived() {
+    authed('admin/listArchived', { limit: 300 })
+      .then(function (d) { renderArchived((d && d.archived) || []); })
+      .catch(function (e) { fail(e, 'Could not load archived records.'); });
+  }
+  function renderArchived(list) {
+    var host = qs('#archived-results'); if (!host) return;
+    if (!list.length) {
+      host.innerHTML = '<div class="empty"><h2>Nothing archived</h2><p>Deleted enrollments appear here. You can restore them, or delete them forever.</p></div>';
+      return;
+    }
+    var rows = list.map(function (a) {
+      return '<tr>' +
+        '<td><div class="cell-name">' + esc(a.fullName || '—') + '</div><div class="cell-sub">' + esc(a.email || '') + '</div></td>' +
+        '<td class="cell-id">' + esc(a.studentId || '—') + '</td>' +
+        '<td><span class="badge ' + badgeFor(normalizeStatus(a.status)) + '">' + esc(normalizeStatus(a.status)) + '</span></td>' +
+        '<td>' + esc(a.reason || '') + '</td>' +
+        '<td class="cell-dates"><div><b>Sub</b> ' + fmtDate(a.submittedAt) + '</div><div><b>Del</b> ' + fmtDate(a.deletedAt) + '</div><div class="cell-sub">by ' + esc(a.deletedBy || '') + '</div></td>' +
+        '<td class="cell-act"><button class="btn btn--secondary btn--sm" data-act="restore" data-arch="' + esc(a.archiveId) + '">Restore</button> ' +
+        '<button class="btn btn--danger btn--sm" data-act="purge" data-arch="' + esc(a.archiveId) + '">Delete forever</button></td></tr>';
+    }).join('');
+    host.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Student ID</th><th>Status</th><th>Why</th><th>Dates</th><th></th></tr></thead><tbody>' +
+      rows + '</tbody></table></div><p class="count">' + list.length + ' archived</p>';
+  }
+  function restoreArchive(id) {
+    authed('admin/restoreEnrollment', { archiveId: id })
+      .then(function () { toast('Restored.', 'ok'); loadArchived(); refresh(); })
+      .catch(function (e) { fail(e, 'Could not restore this record.'); });
+  }
+  function purgeArchive(id) {
+    if (!window.confirm('Delete this record permanently? This cannot be undone.')) return;
+    authed('admin/purgeArchived', { keys: [id] })
+      .then(function () { toast('Deleted permanently.', 'ok'); loadArchived(); })
+      .catch(function (e) { fail(e, 'Could not delete this record.'); });
   }
 
   // ---------------------------------------------------------------- actions
@@ -1812,6 +1939,7 @@ window.WHAAdminRecheckBridge = {
     if (name === 'overview') loadStats();
     if (name === 'devices') loadDevices();
     if (name === 'papers') loadPapers();
+    if (name === 'archived') loadArchived();
   }
 
   function enterConsole(email) {
@@ -2337,7 +2465,18 @@ window.WHAAdminRecheckBridge = {
     qs('#mf-insert').addEventListener('click', insertFromEditor);
     qs('#mf-cancel').addEventListener('click', closeMathEditor);
     modal.querySelector('[data-mf-close]').addEventListener('click', closeMathEditor);
-    document.addEventListener('keydown', function (e) { if (!modal.hidden && e.key === 'Escape') closeMathEditor(); });
+    document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.id === 'f-filter') { renderResults(); return; }
+    if (t.id === 'cb-all') {
+      qsa('.row-cb').forEach(function (c) { c.checked = t.checked; });
+      updateBulkBar(); return;
+    }
+    if (t.classList && t.classList.contains('row-cb')) updateBulkBar();
+  });
+
+  document.addEventListener('keydown', function (e) { if (!modal.hidden && e.key === 'Escape') closeMathEditor(); });
   }
 
   function wirePapers() {
@@ -3246,6 +3385,10 @@ window.WHAAdminRecheckBridge = {
     if (t.dataset.act === 'close') closeDialog();
     if (t.dataset.act === 'refresh') loadStats();
     if (t.dataset.act === 'refresh-papers') loadPapers();
+    if (t.dataset.act === 'archive-selected') archiveSelected();
+    if (t.dataset.act === 'restore') restoreArchive(t.dataset.arch);
+    if (t.dataset.act === 'purge') purgeArchive(t.dataset.arch);
+    if (t.dataset.act === 'refresh-archived') loadArchived();
     if (t.dataset.view) {
       showView(t.dataset.view);
       if (t.dataset.view === 'grading') loadGrading();

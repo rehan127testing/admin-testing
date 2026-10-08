@@ -510,6 +510,35 @@ select.input { appearance: auto; background: var(--surface); }
 .ins-pager__num:hover { background: var(--hover, #f3f4f6); }
 .ins-pager__num.is-current { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
 .ins-pager__gap { padding: 0 4px; color: var(--muted, #6b7280); }
+/* Student cards (replace the wide table; no horizontal scroll) */
+.stu-list { display: flex; flex-direction: column; gap: 12px; }
+.stu-card { border: 1px solid var(--line, #e5e7eb); border-radius: 14px; background: #fff; overflow: hidden; transition: box-shadow .18s, border-color .18s; }
+.stu-card:hover { box-shadow: 0 6px 20px rgba(2,6,23,.07); }
+.stu-card.is-open { border-color: #0f766e; box-shadow: 0 10px 30px rgba(2,6,23,.10); }
+.stu-head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; }
+.stu-head__main { flex: 1 1 auto; min-width: 0; }
+.stu-head__name { font-weight: 700; font-size: 1rem; }
+.stu-head__sub { color: var(--muted,#6b7280); font-size: .82rem; font-family: ui-monospace,Menlo,Consolas,monospace; }
+.stu-head__right { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.stu-caret { flex: 0 0 auto; color: var(--muted,#9ca3af); transition: transform .18s; }
+.stu-card.is-open .stu-caret { transform: rotate(180deg); }
+.stu-body { display: none; padding: 2px 16px 16px; border-top: 1px solid var(--line,#eef2f7); }
+.stu-card.is-open .stu-body { display: block; }
+.stu-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
+.stu-dl dt { color: var(--muted,#6b7280); font-size: .82rem; }
+.stu-dl dd { margin: 0; font-size: .9rem; word-break: break-word; }
+.stu-sec { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted,#9ca3af); margin: 14px 0 2px; }
+@media (max-width: 560px){ .stu-head{flex-wrap:wrap} .stu-dl{grid-template-columns:1fr} .stu-dl dt{margin-top:6px} }
+/* Teacher PIN field */
+.pin-wrap { position: relative; }
+.pin-wrap .input { padding-right: 42px; }
+.pin-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; font-size: 16px; line-height: 1; opacity: .7; }
+.pin-eye:hover { opacity: 1; }
+.pin-rules { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.pin-rules li { font-size: .78rem; color: var(--muted,#9ca3af); position: relative; padding-left: 16px; }
+.pin-rules li::before { content: '\25CB'; position: absolute; left: 0; }
+.pin-rules li.ok { color: #0f766e; }
+.pin-rules li.ok::before { content: '\25CF'; }
 /* Inline admin edit form for an insight */
 .ins-edit { display: flex; flex-direction: column; gap: 6px; }
 .ins-edit__hint { font-size: 0.82rem; color: var(--muted, #6b7280); margin: 2px 0 8px; }
@@ -800,6 +829,10 @@ select.input { appearance: auto; background: var(--surface); }
     </div>
 
     <nav class="side__nav">
+      <button class="side__item" data-view="overview" type="button">
+        <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Overview
+      </button>
       <button class="side__item is-active" data-view="students" type="button">
         <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
         Students
@@ -807,10 +840,6 @@ select.input { appearance: auto; background: var(--surface); }
       <button class="side__item" data-view="archived" type="button">
         <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7l1 13h12l1-13M9 11v6M15 11v6M9 7V4h6v3"/></svg>
         Archived
-      </button>
-      <button class="side__item" data-view="overview" type="button">
-        <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
-        Overview
       </button>
       <button class="side__item" data-view="papers" type="button">
         <svg viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9.5 12l1.8 1.8L15 9.8"/></svg>
@@ -877,10 +906,6 @@ select.input { appearance: auto; background: var(--surface); }
           <option value="suspended">Suspended</option>
           <option value="expired">Expired</option>
         </select>
-        <div id="bulk-bar" class="bulk-bar" hidden>
-          <span id="bulk-count">0 selected</span>
-          <button class="btn btn--danger btn--sm" data-act="archive-selected" type="button">Delete selected</button>
-        </div>
       </div>
 
       <div id="results" aria-live="polite"></div>
@@ -1094,7 +1119,15 @@ select.input { appearance: auto; background: var(--surface); }
           </div>
           <div class="field">
             <label class="field__label" for="tc-pin">Initial PIN</label>
-            <input class="input" id="tc-pin" inputmode="numeric" placeholder="4–8 digits">
+            <div class="pin-wrap">
+              <input class="input" id="tc-pin" type="password" maxlength="16" autocomplete="new-password" placeholder="8–16, letters & numbers">
+              <button type="button" class="pin-eye" data-eye="tc-pin" aria-label="Show or hide PIN">👁</button>
+            </div>
+            <ul class="pin-rules" id="tc-pin-rules">
+              <li data-rule="len">8–16 characters</li>
+              <li data-rule="num">1 number</li>
+              <li data-rule="letter">1 letter</li>
+            </ul>
             <span class="field__hint">You share this with the teacher; they use it to sign in.</span>
           </div>
         </div>
@@ -1330,6 +1363,8 @@ select.input { appearance: auto; background: var(--surface); }
   var STATUSES = ['Active', 'Pending', 'Suspended', 'Expired'];
 
   var results = [];   // rows currently on screen
+  var stuPage = 1;
+  var STU_PAGE_SIZE = 10;
   var pendingRow = null;
 
   // ---------------------------------------------------------------- helpers
@@ -1546,58 +1581,129 @@ window.WHAAdminRecheckBridge = {
       (rows ? '<div class="panel"><h2 class="panel__title">By class</h2><ul class="bars">' + rows + '</ul></div>' : '');
   }
 
+  function prettyKey(k){ return String(k).replace(/_/g,' ').replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/^./,function(c){return c.toUpperCase();}); }
+  function fmtVal(v){
+    if (v == null) return '—';
+    if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+    if (typeof v === 'object') { try { return JSON.stringify(v); } catch(e){ return '—'; } }
+    var t = String(v); return t.trim() ? t : '—';
+  }
+  var STU_HIDE_KEYS = { fullName:1, email:1, source:1, submittedAtLocal:1 };
+
+  function stuCard(s){
+    var sid = String(s.studentId || '').trim();
+    var status = normalizeStatus(s.status);
+    var key = sid || String(s.enrollmentId || '');
+    var account = !sid ? '<span class="muted">—</span>'
+      : s.hasAccount ? '<span class="dot dot--ok">Registered</span>'
+      : '<span class="dot dot--warn">No account yet</span>';
+
+    var actions = '<button class="btn btn--secondary btn--sm" data-act="status" data-key="' + esc(key) + '">Change status</button>';
+    if (!s.hasAccount) actions += ' <button class="btn btn--quiet btn--sm" data-act="archive-one" data-key="' + esc(key) + '">Archive</button>';
+
+    var base = '';
+    base += '<dt>Email</dt><dd>' + esc(s.email || '—') + '</dd>';
+    base += '<dt>Account</dt><dd>' + account + '</dd>';
+    base += '<dt>Scope</dt><dd>' + esc(s.enrolledScope || '—') + '</dd>';
+    base += '<dt>Submitted</dt><dd>' + fmtDate(s.submittedAt) + '</dd>';
+    base += '<dt>Activated</dt><dd>' + fmtDate(s.activatedAt) + '</dd>';
+    base += '<dt>Registered</dt><dd>' + fmtDate(s.registeredAt) + '</dd>';
+
+    // Whole enrollment form - future fields appear here automatically.
+    var fd = (s.formData && typeof s.formData === 'object') ? s.formData : {};
+    var extra = '';
+    Object.keys(fd).forEach(function(k){
+      if (STU_HIDE_KEYS[k]) return;
+      extra += '<dt>' + esc(prettyKey(k)) + '</dt><dd>' + esc(fmtVal(fd[k])) + '</dd>';
+    });
+
+    return '<div class="stu-card" data-key="' + esc(key) + '">' +
+      '<div class="stu-head">' +
+        '<div class="stu-head__main">' +
+          '<div class="stu-head__name">' + esc(s.fullName || '—') + '</div>' +
+          '<div class="stu-head__sub">' + (sid ? esc(sid) : 'ID not issued') + '</div>' +
+        '</div>' +
+        '<div class="stu-head__right">' +
+          '<span class="badge ' + badgeFor(status) + '">' + esc(status) + '</span>' + actions +
+        '</div>' +
+        '<svg class="stu-caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+      '</div>' +
+      '<div class="stu-body"><dl class="stu-dl">' + base + '</dl>' +
+        (extra ? '<div class="stu-sec">Enrollment form</div><dl class="stu-dl">' + extra + '</dl>' : '') +
+      '</div></div>';
+  }
+
   function renderResults(list, query) {
     var host = qs('#results');
-    if (Array.isArray(list)) results = list;
+    if (Array.isArray(list)) { results = list; stuPage = 1; }
     if (!Array.isArray(results)) results = [];
 
     if (!results.length) {
       host.innerHTML = '<div class="empty"><h2>No students matched</h2><p>' +
         (query ? 'Nothing found for &ldquo;' + esc(query) + '&rdquo;. Try part of a name, an email, or a Student ID.'
                : 'There are no enrollment rows yet.') + '</p></div>';
-      updateBulkBar();
       return;
     }
 
     var shown = filteredResults();
     if (!shown.length) {
       host.innerHTML = '<div class="empty"><h2>Nothing in this filter</h2><p>Try a different filter above.</p></div>';
-      updateBulkBar();
       return;
     }
 
-    var rows = shown.map(function (s) {
-      var sid = String(s.studentId || '').trim();
-      var status = normalizeStatus(s.status);
-      var key = sid || String(s.enrollmentId || '');
-      var account = !sid ? '<span class="muted">&mdash;</span>'
-        : s.hasAccount ? '<span class="dot dot--ok">Registered</span>'
-        : '<span class="dot dot--warn">No account yet</span>';
-      // Only account-less rows are selectable for archive (registered accounts are protected).
-      var cb = s.hasAccount ? '<td class="cell-cb"></td>'
-        : '<td class="cell-cb"><input type="checkbox" class="row-cb" data-key="' + esc(key) + '" aria-label="Select"></td>';
-
-      return '<tr>' + cb +
-        '<td><div class="cell-name">' + esc(s.fullName || '—') + '</div>' +
-        '<div class="cell-sub">' + esc(s.email || '') + '</div></td>' +
-        '<td class="cell-id">' + (sid ? esc(sid) : '<span class="muted">not issued</span>') + '</td>' +
-        '<td>' + esc(s.enrolledScope || '—') + '</td>' +
-        '<td>' + account + '</td>' +
-        '<td><span class="badge ' + badgeFor(status) + '">' + esc(status) + '</span></td>' +
-        '<td class="cell-dates"><div><b>Sub</b> ' + fmtDate(s.submittedAt) + '</div>' +
-        '<div><b>Act</b> ' + fmtDate(s.activatedAt) + '</div>' +
-        '<div><b>Reg</b> ' + fmtDate(s.registeredAt) + '</div></td>' +
-        '<td class="cell-act"><button class="btn btn--secondary btn--sm" data-act="status" data-key="' +
-        esc(key) + '">Change status</button></td></tr>';
-    }).join('');
+    var total = Math.max(1, Math.ceil(shown.length / STU_PAGE_SIZE));
+    if (stuPage > total) stuPage = total;
+    if (stuPage < 1) stuPage = 1;
+    var start = (stuPage - 1) * STU_PAGE_SIZE;
+    var pageRows = shown.slice(start, start + STU_PAGE_SIZE);
 
     host.innerHTML =
-      '<div class="table-wrap"><table>' +
-      '<thead><tr><th class="cell-cb"><input type="checkbox" id="cb-all" aria-label="Select all"></th>' +
-      '<th>Student</th><th>Student ID</th><th>Scope</th><th>Account</th><th>Status</th><th>Dates</th><th></th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>' +
-      '<p class="count">' + shown.length + ' shown</p>';
-    updateBulkBar();
+      '<div class="stu-list">' + pageRows.map(stuCard).join('') + '</div>' +
+      stuPagerHtml(total, start, pageRows.length, shown.length) +
+      '<p class="count">' + shown.length + ' total</p>';
+  }
+
+  function stuPagerHtml(total, start, shown, totalRows){
+    if (totalRows <= STU_PAGE_SIZE) return '';
+    var nums = [], win = 2;
+    for (var p = 1; p <= total; p++){
+      if (p === 1 || p === total || (p >= stuPage - win && p <= stuPage + win)) nums.push(p);
+      else if (nums[nums.length-1] !== '…') nums.push('…');
+    }
+    var numHtml = nums.map(function(p){
+      if (p === '…') return '<span class="ins-pager__gap">…</span>';
+      var cur = (p === stuPage) ? ' is-current' : '';
+      return '<button type="button" class="ins-pager__num' + cur + '" data-act="stu-page" data-page="' + p + '"' + (p===stuPage?' aria-current="page"':'') + '>' + p + '</button>';
+    }).join('');
+    return '<div class="ins-pager">' +
+      '<div class="ins-pager__info">Showing <strong>' + (start+1) + '–' + (start+shown) + '</strong> of <strong>' + totalRows + '</strong></div>' +
+      '<div class="ins-pager__btns">' +
+        '<button type="button" class="btn btn--quiet btn--sm" data-act="stu-page" data-page="' + (stuPage-1) + '"' + (stuPage<=1?' disabled':'') + '>Prev</button>' +
+        numHtml +
+        '<button type="button" class="btn btn--quiet btn--sm" data-act="stu-page" data-page="' + (stuPage+1) + '"' + (stuPage>=total?' disabled':'') + '>Next</button>' +
+      '</div></div>';
+  }
+
+  function gotoStuPage(p){
+    p = parseInt(p,10); if (isNaN(p)) return;
+    stuPage = p; renderResults();
+    var host = qs('#results'); try { host.scrollIntoView({behavior:'smooth',block:'start'}); } catch(e){}
+  }
+
+  function archiveOne(key){
+    if (!key) return;
+    authed('admin/archiveEnrollments', { keys: [key], reason: 'manual' })
+      .then(function(d){
+        var n = (d && d.archived) || 0;
+        if (n > 0) {
+          results = (results || []).filter(function(s){ return String(s.studentId||'').trim() !== key && String(s.enrollmentId||'') !== key; });
+          renderResults();
+          toast('Moved to Archived. You can restore it from the Archived tab.', 'ok');
+        } else {
+          toast('This record is registered and was not archived.', 'warn');
+        }
+      })
+      .catch(function(e){ fail(e, 'Could not archive this record.'); });
   }
 
   // ---- admin cleanup helpers (dates / filter / archive) ----
@@ -2477,12 +2583,7 @@ window.WHAAdminRecheckBridge = {
     document.addEventListener('change', function (e) {
     var t = e.target;
     if (!t) return;
-    if (t.id === 'f-filter') { renderResults(); return; }
-    if (t.id === 'cb-all') {
-      qsa('.row-cb').forEach(function (c) { c.checked = t.checked; });
-      updateBulkBar(); return;
-    }
-    if (t.classList && t.classList.contains('row-cb')) updateBulkBar();
+    if (t.id === 'f-filter') { stuPage = 1; renderResults(); return; }
   });
 
   document.addEventListener('keydown', function (e) { if (!modal.hidden && e.key === 'Escape') closeMathEditor(); });
@@ -2798,6 +2899,21 @@ window.WHAAdminRecheckBridge = {
     }).join('');
   }
 
+  function teacherPinError(pin){
+    pin = String(pin || '');
+    if (pin.length < 8 || pin.length > 16) return 'PIN must be 8–16 characters.';
+    if (!/[0-9]/.test(pin)) return 'PIN must include at least one number.';
+    if (!/[A-Za-z]/.test(pin)) return 'PIN must include at least one letter.';
+    return '';
+  }
+  function updateTcPinRules(){
+    var el = qs('#tc-pin'); var pin = el ? el.value : '';
+    var set = function(rule, ok){ var li = qs('#tc-pin-rules li[data-rule="' + rule + '"]'); if (li) li.classList.toggle('ok', !!ok); };
+    set('len', pin.length >= 8 && pin.length <= 16);
+    set('num', /[0-9]/.test(pin));
+    set('letter', /[A-Za-z]/.test(pin));
+  }
+
   function createTeacher(button) {
     var payload = {
       fullName: qs('#tc-name').value.trim(),
@@ -2809,6 +2925,8 @@ window.WHAAdminRecheckBridge = {
       toast('Fill in name, email, PIN and at least one subject.', 'bad');
       return;
     }
+    var pe = teacherPinError(payload.pin);
+    if (pe) { toast(pe, 'bad'); return; }
     busy(button, true);
     authed('admin/createTeacher', { teacher: payload })
       .then(function () {
@@ -2840,8 +2958,10 @@ window.WHAAdminRecheckBridge = {
         .catch(function (err) { fail(err, 'Could not change status.'); });
     }
     if (act === 'tc-resetpin') {
-      var pin = window.prompt('New PIN for ' + email + ' (4–8 digits):', '');
+      var pin = window.prompt('New PIN for ' + email + ' (8–16, letters & numbers):', '');
       if (pin == null) return;
+      var rpe = teacherPinError(pin.trim());
+      if (rpe) { toast(rpe, 'bad'); return; }
       return authed('admin/resetTeacherPin', { email: email, newPin: pin.trim() })
         .then(function () { toast('PIN reset. Share the new PIN with the teacher.', 'ok'); })
         .catch(function (err) { fail(err, 'Could not reset the PIN.'); });
@@ -2854,6 +2974,13 @@ window.WHAAdminRecheckBridge = {
     panel.addEventListener('click', onTeachersClick);
     var create = qs('#tc-create');
     if (create) create.addEventListener('click', function (e) { createTeacher(e.currentTarget); });
+    var pinInput = qs('#tc-pin');
+    if (pinInput) pinInput.addEventListener('input', updateTcPinRules);
+    var eye = qs('[data-eye="tc-pin"]');
+    if (eye) eye.addEventListener('click', function () {
+      var i = qs('#tc-pin'); if (!i) return;
+      i.type = (i.type === 'password') ? 'text' : 'password';
+    });
   }
 
   // ==========================================================================
@@ -3410,8 +3537,16 @@ window.WHAAdminRecheckBridge = {
 
   // Row buttons are rebuilt on every search, so listen once on the container.
   qs('#results').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-act="status"]');
-    if (b) openDialog(b.dataset.key);
+    var b = e.target.closest('[data-act]');
+    if (b) {
+      var a = b.dataset.act;
+      if (a === 'status') return openDialog(b.dataset.key);
+      if (a === 'archive-one') return archiveOne(b.dataset.key);
+      if (a === 'stu-page') return gotoStuPage(b.dataset.page);
+      return;
+    }
+    var card = e.target.closest('.stu-card');
+    if (card) card.classList.toggle('is-open');
   });
 
   document.addEventListener('click', function (e) {
@@ -3430,7 +3565,6 @@ window.WHAAdminRecheckBridge = {
     if (t.dataset.act === 'close') closeDialog();
     if (t.dataset.act === 'refresh') loadStats();
     if (t.dataset.act === 'refresh-papers') loadPapers();
-    if (t.dataset.act === 'archive-selected') archiveSelected();
     if (t.dataset.act === 'restore') restoreArchive(t.dataset.arch);
     if (t.dataset.act === 'purge') purgeArchive(t.dataset.arch);
     if (t.dataset.act === 'refresh-archived') loadArchived();

@@ -529,6 +529,14 @@ select.input { appearance: auto; background: var(--surface); }
 .stu-dl dd { margin: 0; font-size: .9rem; word-break: break-word; }
 .stu-sec { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted,#9ca3af); margin: 14px 0 2px; }
 @media (max-width: 560px){ .stu-head{flex-wrap:wrap} .stu-dl{grid-template-columns:1fr} .stu-dl dt{margin-top:6px} }
+.stu-body__acts { display:flex; justify-content:flex-end; margin-top:10px; }
+.stu-edit { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.stu-edit__hint { font-size:.8rem; color:var(--muted,#6b7280); margin:0 0 4px; line-height:1.5; }
+.stu-edit__row { display:grid; grid-template-columns:170px 1fr; align-items:center; gap:10px; }
+.stu-edit__lbl { font-size:.82rem; color:var(--muted,#6b7280); }
+.stu-edit__row .input { width:100%; }
+.stu-edit__acts { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+@media (max-width:560px){ .stu-edit__row{grid-template-columns:1fr; gap:4px} }
 /* Teacher PIN field */
 .pin-wrap { position: relative; }
 .pin-wrap .input { padding-right: 42px; }
@@ -1590,17 +1598,12 @@ window.WHAAdminRecheckBridge = {
   }
   var STU_HIDE_KEYS = { fullName:1, email:1, source:1, submittedAtLocal:1 };
 
-  function stuCard(s){
+  function stuBodyInner(s){
     var sid = String(s.studentId || '').trim();
-    var status = normalizeStatus(s.status);
     var key = sid || String(s.enrollmentId || '');
     var account = !sid ? '<span class="muted">—</span>'
       : s.hasAccount ? '<span class="dot dot--ok">Registered</span>'
       : '<span class="dot dot--warn">No account yet</span>';
-
-    var actions = '<button class="btn btn--secondary btn--sm" data-act="status" data-key="' + esc(key) + '">Change status</button>';
-    if (!s.hasAccount) actions += ' <button class="btn btn--quiet btn--sm" data-act="archive-one" data-key="' + esc(key) + '">Archive</button>';
-
     var base = '';
     base += '<dt>Email</dt><dd>' + esc(s.email || '—') + '</dd>';
     base += '<dt>Account</dt><dd>' + account + '</dd>';
@@ -1608,15 +1611,23 @@ window.WHAAdminRecheckBridge = {
     base += '<dt>Submitted</dt><dd>' + fmtDate(s.submittedAt) + '</dd>';
     base += '<dt>Activated</dt><dd>' + fmtDate(s.activatedAt) + '</dd>';
     base += '<dt>Registered</dt><dd>' + fmtDate(s.registeredAt) + '</dd>';
-
-    // Whole enrollment form - future fields appear here automatically.
     var fd = (s.formData && typeof s.formData === 'object') ? s.formData : {};
     var extra = '';
     Object.keys(fd).forEach(function(k){
       if (STU_HIDE_KEYS[k]) return;
       extra += '<dt>' + esc(prettyKey(k)) + '</dt><dd>' + esc(fmtVal(fd[k])) + '</dd>';
     });
+    return '<div class="stu-body__acts"><button class="btn btn--secondary btn--sm" data-act="stu-edit" data-key="' + esc(key) + '">Edit details</button></div>' +
+      '<dl class="stu-dl">' + base + '</dl>' +
+      (extra ? '<div class="stu-sec">Enrollment form</div><dl class="stu-dl">' + extra + '</dl>' : '');
+  }
 
+  function stuCard(s){
+    var sid = String(s.studentId || '').trim();
+    var status = normalizeStatus(s.status);
+    var key = sid || String(s.enrollmentId || '');
+    var actions = '<button class="btn btn--secondary btn--sm" data-act="status" data-key="' + esc(key) + '">Change status</button>';
+    if (!s.hasAccount) actions += ' <button class="btn btn--quiet btn--sm" data-act="archive-one" data-key="' + esc(key) + '">Archive</button>';
     return '<div class="stu-card" data-key="' + esc(key) + '">' +
       '<div class="stu-head">' +
         '<div class="stu-head__main">' +
@@ -1628,9 +1639,75 @@ window.WHAAdminRecheckBridge = {
         '</div>' +
         '<svg class="stu-caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
       '</div>' +
-      '<div class="stu-body"><dl class="stu-dl">' + base + '</dl>' +
-        (extra ? '<div class="stu-sec">Enrollment form</div><dl class="stu-dl">' + extra + '</dl>' : '') +
+      '<div class="stu-body">' + stuBodyInner(s) + '</div></div>';
+  }
+
+  // ---- inline edit of a student's enrollment fields ----
+  function fmtPlain(v){
+    if (v == null) return '';
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'object') { try { return JSON.stringify(v); } catch(e){ return ''; } }
+    return String(v);
+  }
+  function findStudentByKey(key){
+    for (var i=0;i<results.length;i++){ var s=results[i];
+      if (String(s.studentId||'').trim()===key || String(s.enrollmentId||'')===key) return s; }
+    return null;
+  }
+  function findCardByKey(key){
+    var cards = qsa('.stu-card');
+    for (var i=0;i<cards.length;i++){ if (cards[i].getAttribute('data-key')===key) return cards[i]; }
+    return null;
+  }
+  function stuEditForm(s, key){
+    var fd = (s.formData && typeof s.formData === 'object') ? s.formData : {};
+    function row(field,label,val,type){
+      return '<label class="stu-edit__row"><span class="stu-edit__lbl">' + esc(label) + '</span>' +
+        '<input class="input" data-field="' + esc(field) + '" type="' + (type||'text') + '" value="' + esc(val==null?'':String(val)) + '"></label>';
+    }
+    var subjects = Array.isArray(fd.subjects) ? fd.subjects.join(', ') : fmtPlain(fd.subjects);
+    var cls = (fd.classLevel!=null && fd.classLevel!=='') ? fd.classLevel : (s.classLevel||'');
+    var html = '<div class="stu-edit">' +
+      '<p class="stu-edit__hint">Edit any field and Save. Changing Subjects or Class updates which games this student can play. Valid subjects: Mathematics, Physics, Chemistry, Biology, Computer Science, Science, Geography, History, English, Urdu, Islamiat, Pakistan Studies.</p>';
+    html += row('fullName','Full name', s.fullName || fd.fullName || '');
+    html += row('email','Email', s.email || fd.email || '');
+    html += row('classLevel','Class (1\u201312)', cls, 'number');
+    html += row('subjects','Subjects (comma-separated)', subjects);
+    var handled = {fullName:1,email:1,classLevel:1,subjects:1,source:1,submittedAtLocal:1};
+    Object.keys(fd).forEach(function(k){ if (handled[k]) return; html += row(k, prettyKey(k), fmtPlain(fd[k])); });
+    html += '<div class="stu-edit__acts">' +
+      '<button class="btn btn--primary btn--sm" data-act="stu-save" data-key="' + esc(key) + '">Save changes</button> ' +
+      '<button class="btn btn--quiet btn--sm" data-act="stu-cancel" data-key="' + esc(key) + '">Cancel</button>' +
       '</div></div>';
+    return html;
+  }
+  function openStuEdit(key){
+    var s = findStudentByKey(key); if (!s) return;
+    var card = findCardByKey(key); if (!card) return;
+    card.classList.add('is-open');
+    var body = card.querySelector('.stu-body'); if (body) body.innerHTML = stuEditForm(s, key);
+  }
+  function cancelStuEdit(key){
+    var s = findStudentByKey(key), card = findCardByKey(key);
+    if (!s || !card) { renderResults(); return; }
+    var body = card.querySelector('.stu-body'); if (body) body.innerHTML = stuBodyInner(s);
+  }
+  function saveStuEdit(key, btn){
+    var card = findCardByKey(key); if (!card) return;
+    var patch = {};
+    Array.prototype.forEach.call(card.querySelectorAll('.stu-edit [data-field]'), function(inp){
+      patch[inp.getAttribute('data-field')] = inp.value;
+    });
+    busy(btn, true);
+    authed('admin/updateEnrollment', { key: key, patch: patch })
+      .then(function(d){
+        toast('Changes saved.', 'ok');
+        var un = d && d.unmappedSubjects;
+        if (un && un.length) toast('Saved, but these subjects do not map to a game and were skipped for unlocking: ' + un.join(', '), 'warn');
+        refresh();
+      })
+      .catch(function(e){ fail(e, 'Could not save changes.'); })
+      .then(function(){ busy(btn, false); });
   }
 
   function renderResults(list, query) {
@@ -3543,10 +3620,13 @@ window.WHAAdminRecheckBridge = {
       if (a === 'status') return openDialog(b.dataset.key);
       if (a === 'archive-one') return archiveOne(b.dataset.key);
       if (a === 'stu-page') return gotoStuPage(b.dataset.page);
+      if (a === 'stu-edit') return openStuEdit(b.dataset.key);
+      if (a === 'stu-save') return saveStuEdit(b.dataset.key, b);
+      if (a === 'stu-cancel') return cancelStuEdit(b.dataset.key);
       return;
     }
-    var card = e.target.closest('.stu-card');
-    if (card) card.classList.toggle('is-open');
+    var head = e.target.closest('.stu-head');
+    if (head) { var c = head.closest('.stu-card'); if (c) c.classList.toggle('is-open'); }
   });
 
   document.addEventListener('click', function (e) {

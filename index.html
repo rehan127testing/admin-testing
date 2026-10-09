@@ -537,6 +537,10 @@ select.input { appearance: auto; background: var(--surface); }
 .stu-edit__row .input { width:100%; }
 .stu-edit__acts { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
 @media (max-width:560px){ .stu-edit__row{grid-template-columns:1fr; gap:4px} }
+.ed-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.ed-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line,#e5e7eb); border-radius:999px; padding:6px 12px; cursor:pointer; font-size:.85rem; user-select:none; }
+.ed-chip input { margin:0; }
+.ed-chip:has(input:checked) { background:#0f766e; border-color:#0f766e; color:#fff; }
 /* Teacher PIN field */
 .pin-wrap { position: relative; }
 .pin-wrap .input { padding-right: 42px; }
@@ -1585,8 +1589,16 @@ window.WHAAdminRecheckBridge = {
              '<span class="bar__value">' + esc(byClass[level]) + '</span></li>';
     }).join('');
 
+    var bySchool = stats.bySchool || {};
+    var schoolRows = Object.keys(bySchool).sort(function (a, b) {
+      return (bySchool[b] || 0) - (bySchool[a] || 0) || a.localeCompare(b);
+    }).map(function (name) {
+      return '<li class="bar"><span>' + esc(name) + '</span><span class="bar__value">' + esc(bySchool[name]) + '</span></li>';
+    }).join('');
+
     host.innerHTML = '<div class="tiles">' + tiles + '</div>' +
-      (rows ? '<div class="panel"><h2 class="panel__title">By class</h2><ul class="bars">' + rows + '</ul></div>' : '');
+      (rows ? '<div class="panel"><h2 class="panel__title">By class</h2><ul class="bars">' + rows + '</ul></div>' : '') +
+      (schoolRows ? '<div class="panel"><h2 class="panel__title">Schools (from enrollment forms)</h2><ul class="bars">' + schoolRows + '</ul></div>' : '');
   }
 
   function prettyKey(k){ return String(k).replace(/_/g,' ').replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/^./,function(c){return c.toUpperCase();}); }
@@ -1659,25 +1671,73 @@ window.WHAAdminRecheckBridge = {
     for (var i=0;i<cards.length;i++){ if (cards[i].getAttribute('data-key')===key) return cards[i]; }
     return null;
   }
+  // Enrollment-form config mirrored for admin editing (class 6-12 only).
+  var ENROLL = {
+    streams: { low:['Not applicable'], matric:['Biology group','Computer group'], inter:['Pre-Medical','Pre-Engineering','ICS'] },
+    subjects: { low:['Mathematics','Science','Geography','History','Computer'], matric:['Mathematics','Physics','Chemistry','Biology','Computer'], inter:['Mathematics','Physics','Chemistry','Biology','Computer'] },
+    plans: { Middle:[['Starter',5000],['Pro',12000],['Advanced',18000]], Matric:[['Starter',2000],['Pro',3500],['Advanced',4500]], Intermediate:[['Starter',2500],['Pro',4500],['Advanced',5500]] },
+    tuition: ['Online','Home Tuition']
+  };
+  function edBandKey(c){ c=Number(c); return c<=8?'low':(c<=10?'matric':'inter'); }
+  function edBandName(c){ c=Number(c); return c<=8?'Middle':(c<=10?'Matric':'Intermediate'); }
+
+  function edDynamicHtml(cls, cur){
+    cur = cur || {};
+    var k = edBandKey(cls), band = edBandName(cls);
+    var sOpts = '<option value="">\u2014 Select \u2014</option>' +
+      ENROLL.streams[k].map(function(x){ return '<option'+(x===cur.stream?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
+    var streamHtml = '<label class="stu-edit__row"><span class="stu-edit__lbl">Stream</span><select class="input" data-field="stream">'+sOpts+'</select></label>';
+    var chosen = {}; (cur.subjects||[]).forEach(function(x){ chosen[String(x).trim().toLowerCase()]=1; });
+    var chips = ENROLL.subjects[k].map(function(sub){ return '<label class="ed-chip"><input type="checkbox" data-subject value="'+esc(sub)+'"'+(chosen[sub.toLowerCase()]?' checked':'')+'><span>'+esc(sub)+'</span></label>'; }).join('');
+    var subsHtml = '<div class="stu-edit__row"><span class="stu-edit__lbl">Subjects</span><div class="ed-chips">'+chips+'</div></div>';
+    var rows = ENROLL.plans[band];
+    var tierRow = rows.filter(function(p){ return p[0]===cur.plan; })[0];
+    var wantPrice = tierRow ? tierRow[1] : cur.price;
+    var planOpts = '<option value="">\u2014 Select \u2014</option>' +
+      rows.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===cur.plan?' selected':'')+'>'+p[0]+'</option>'; }).join('');
+    var priceOpts = rows.map(function(p){ return '<option value="'+p[1]+'"'+(String(p[1])===String(wantPrice)?' selected':'')+'>PKR '+Number(p[1]).toLocaleString()+' ('+p[0]+')</option>'; }).join('');
+    var planHtml = '<label class="stu-edit__row"><span class="stu-edit__lbl">Plan</span><select class="input" data-field="plan">'+planOpts+'</select></label>'+
+      '<label class="stu-edit__row"><span class="stu-edit__lbl">Plan price</span><select class="input" data-field="planPrice">'+priceOpts+'</select></label>';
+    return streamHtml + subsHtml + planHtml;
+  }
+  function edCurrentFromForm(ed){
+    function v(f){ var el=ed.querySelector('[data-field="'+f+'"]'); return el?el.value:''; }
+    var subs = Array.prototype.map.call(ed.querySelectorAll('[data-subject]:checked'), function(c){ return c.value; });
+    return { stream:v('stream'), plan:v('plan'), price:v('planPrice'), subjects:subs };
+  }
+
   function stuEditForm(s, key){
     var fd = (s.formData && typeof s.formData === 'object') ? s.formData : {};
-    function row(field,label,val,type){
-      return '<label class="stu-edit__row"><span class="stu-edit__lbl">' + esc(label) + '</span>' +
-        '<input class="input" data-field="' + esc(field) + '" type="' + (type||'text') + '" value="' + esc(val==null?'':String(val)) + '"></label>';
+    function txt(field,label,val,type){
+      return '<label class="stu-edit__row"><span class="stu-edit__lbl">'+esc(label)+'</span>'+
+        '<input class="input" data-field="'+esc(field)+'" type="'+(type||'text')+'" value="'+esc(val==null?'':String(val))+'"></label>';
     }
-    var subjects = Array.isArray(fd.subjects) ? fd.subjects.join(', ') : fmtPlain(fd.subjects);
-    var cls = (fd.classLevel!=null && fd.classLevel!=='') ? fd.classLevel : (s.classLevel||'');
+    var cls = Number(fd.classLevel) || Number(s.classLevel) || 6;
+    if (cls < 6) cls = 6; if (cls > 12) cls = 12;
+    var subjects = Array.isArray(fd.subjects) ? fd.subjects
+      : (fd.subjects ? String(fd.subjects).split(',').map(function(x){return x.trim();}).filter(Boolean) : []);
+    var cur = { stream: fd.stream||'', subjects: subjects, plan: fd.plan||fd.planTier||'', price: fd.planPrice };
+
+    var classOpts = '';
+    for (var c=6;c<=12;c++){ classOpts += '<option value="'+c+'"'+(c===cls?' selected':'')+'>Class '+c+'</option>'; }
+    var tuitOpts = '<option value=""'+(!fd.tuitionMode?' selected':'')+'>\u2014 Select \u2014</option>' +
+      ENROLL.tuition.map(function(t){ return '<option'+(t===(fd.tuitionMode||'')?' selected':'')+'>'+esc(t)+'</option>'; }).join('');
+
     var html = '<div class="stu-edit">' +
-      '<p class="stu-edit__hint">Edit any field and Save. Changing Subjects or Class updates which games this student can play. Valid subjects: Mathematics, Physics, Chemistry, Biology, Computer Science, Science, Geography, History, English, Urdu, Islamiat, Pakistan Studies.</p>';
-    html += row('fullName','Full name', s.fullName || fd.fullName || '');
-    html += row('email','Email', s.email || fd.email || '');
-    html += row('classLevel','Class (1\u201312)', cls, 'number');
-    html += row('subjects','Subjects (comma-separated)', subjects);
-    var handled = {fullName:1,email:1,classLevel:1,subjects:1,source:1,submittedAtLocal:1};
-    Object.keys(fd).forEach(function(k){ if (handled[k]) return; html += row(k, prettyKey(k), fmtPlain(fd[k])); });
-    html += '<div class="stu-edit__acts">' +
-      '<button class="btn btn--primary btn--sm" data-act="stu-save" data-key="' + esc(key) + '">Save changes</button> ' +
-      '<button class="btn btn--quiet btn--sm" data-act="stu-cancel" data-key="' + esc(key) + '">Cancel</button>' +
+      '<p class="stu-edit__hint">Same fields as the enrollment form. Changing Class updates Stream, Subjects and Plan for that level. Changing Subjects or Class updates which games this student can play.</p>';
+    html += txt('fullName','Full name', s.fullName || fd.fullName || '');
+    html += txt('email','Email', s.email || fd.email || '');
+    html += '<label class="stu-edit__row"><span class="stu-edit__lbl">Class</span><select class="input" data-field="classLevel">'+classOpts+'</select></label>';
+    html += '<label class="stu-edit__row"><span class="stu-edit__lbl">Tuition mode</span><select class="input" data-field="tuitionMode">'+tuitOpts+'</select></label>';
+    html += '<div class="ed-dynamic">'+edDynamicHtml(cls, cur)+'</div>';
+
+    var handled = {fullName:1,email:1,classLevel:1,tuitionMode:1,stream:1,subjects:1,plan:1,planTier:1,planPrice:1,classBand:1,source:1,submittedAtLocal:1};
+    ['fatherName','fatherOccupation','schoolName','address','otherSubject'].forEach(function(k){ html += txt(k, prettyKey(k), fmtPlain(fd[k])); handled[k]=1; });
+    Object.keys(fd).forEach(function(k){ if (handled[k]) return; html += txt(k, prettyKey(k), fmtPlain(fd[k])); });
+
+    html += '<div class="stu-edit__acts">'+
+      '<button class="btn btn--primary btn--sm" data-act="stu-save" data-key="'+esc(key)+'">Save changes</button> '+
+      '<button class="btn btn--quiet btn--sm" data-act="stu-cancel" data-key="'+esc(key)+'">Cancel</button>'+
       '</div></div>';
     return html;
   }
@@ -1694,16 +1754,18 @@ window.WHAAdminRecheckBridge = {
   }
   function saveStuEdit(key, btn){
     var card = findCardByKey(key); if (!card) return;
+    var ed = card.querySelector('.stu-edit'); if (!ed) return;
     var patch = {};
-    Array.prototype.forEach.call(card.querySelectorAll('.stu-edit [data-field]'), function(inp){
-      patch[inp.getAttribute('data-field')] = inp.value;
-    });
+    Array.prototype.forEach.call(ed.querySelectorAll('[data-field]'), function(inp){ patch[inp.getAttribute('data-field')] = inp.value; });
+    patch.subjects = Array.prototype.map.call(ed.querySelectorAll('[data-subject]:checked'), function(c){ return c.value; });
+    if (patch.plan) patch.planTier = patch.plan;
+    if (patch.classLevel) patch.classBand = edBandName(patch.classLevel);
     busy(btn, true);
     authed('admin/updateEnrollment', { key: key, patch: patch })
       .then(function(d){
         toast('Changes saved.', 'ok');
         var un = d && d.unmappedSubjects;
-        if (un && un.length) toast('Saved, but these subjects do not map to a game and were skipped for unlocking: ' + un.join(', '), 'warn');
+        if (un && un.length) toast('Note: these subjects are not recognized for game unlocking: ' + un.join(', '), 'warn');
         refresh();
       })
       .catch(function(e){ fail(e, 'Could not save changes.'); })
@@ -3627,6 +3689,22 @@ window.WHAAdminRecheckBridge = {
     }
     var head = e.target.closest('.stu-head');
     if (head) { var c = head.closest('.stu-card'); if (c) c.classList.toggle('is-open'); }
+  });
+
+  qs('#results').addEventListener('change', function (e) {
+    var t = e.target; if (!t || !t.closest) return;
+    var ed = t.closest('.stu-edit'); if (!ed) return;
+    var f = t.getAttribute('data-field');
+    if (f === 'classLevel') {
+      var dyn = ed.querySelector('.ed-dynamic');
+      if (dyn) dyn.innerHTML = edDynamicHtml(t.value, edCurrentFromForm(ed));
+    } else if (f === 'plan') {
+      var clsSel = ed.querySelector('[data-field="classLevel"]');
+      var band = edBandName(clsSel ? clsSel.value : 6);
+      var row = ENROLL.plans[band].filter(function (p) { return p[0] === t.value; })[0];
+      var ps = ed.querySelector('[data-field="planPrice"]');
+      if (row && ps) ps.value = String(row[1]);
+    }
   });
 
   document.addEventListener('click', function (e) {

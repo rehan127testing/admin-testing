@@ -1161,7 +1161,7 @@ select.input { appearance: auto; background: var(--surface); }
             <label class="field__label" for="tc-pin">Initial PIN</label>
             <div class="pin-wrap">
               <input class="input" id="tc-pin" type="password" maxlength="16" autocomplete="new-password" placeholder="8–16, letters & numbers">
-              <button type="button" class="pin-eye" data-eye="tc-pin" aria-label="Show or hide PIN">👁</button>
+              <button type="button" class="pin-eye" data-act="tc-eye" aria-label="Show or hide PIN">👁</button>
             </div>
             <ul class="pin-rules" id="tc-pin-rules">
               <li data-rule="len">8–16 characters</li>
@@ -1172,9 +1172,14 @@ select.input { appearance: auto; background: var(--surface); }
           </div>
         </div>
         <div class="field">
-          <label class="field__label" for="tc-subjects">Subjects <span class="muted">(comma-separated)</span></label>
-          <input class="input" id="tc-subjects" list="ba-subjects" placeholder="e.g. Mathematics, Physics">
-          <span class="field__hint">Must match the subject names on the papers (e.g. Science, Mathematics).</span>
+          <label class="field__label">Subjects <span class="muted">(pick one or more)</span></label>
+          <div class="ed-chips" id="tc-subject-chips"></div>
+          <span class="field__hint">Must match the subject names on the papers.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Classes <span class="muted">(optional &mdash; empty = all classes)</span></label>
+          <div class="ed-chips" id="tc-class-chips"></div>
+          <span class="field__hint">Teacher sees only their subjects for these classes (grading &amp; rechecks).</span>
         </div>
         <div class="paper-acts">
           <button class="btn btn--primary" type="button" id="tc-create">Create teacher</button>
@@ -3110,6 +3115,7 @@ window.WHAAdminRecheckBridge = {
   // TEACHERS — admin creates teacher accounts and assigns subjects.
   // The teacher's own grading happens on the separate teacher.html panel.
   // ===================================================================
+  var teacherList = [];
   function loadTeachers() {
     var host = qs('#tc-list');
     host.innerHTML = '<p class="muted">Loading…</p>';
@@ -3119,6 +3125,7 @@ window.WHAAdminRecheckBridge = {
   }
 
   function renderTeachers(list) {
+    teacherList = list || [];
     var host = qs('#tc-list');
     if (!list.length) { host.innerHTML = '<div class="empty"><h2>No teachers yet</h2><p>Create one above.</p></div>'; return; }
     host.innerHTML = list.map(function (t) {
@@ -3127,12 +3134,14 @@ window.WHAAdminRecheckBridge = {
       var subs = (t.subjects && t.subjects.length) ? t.subjects.join(', ') : '—';
       var isActive = (t.status === 'Active');
       var toggle = '<button class="btn btn--quiet btn--sm" data-act="tc-status" data-email="' + esc(t.email) + '" data-status="' + (isActive ? 'Suspended' : 'Active') + '">' + (isActive ? 'Suspend' : 'Activate') + '</button>';
+      var cls = (t.classes && t.classes.length) ? ('Class ' + t.classes.join(', ')) : 'All classes';
       return '<div class="pp-row">' +
         '<div class="pp-row__main"><div class="pp-row__title">' + esc(t.fullName || 'Teacher') +
           ' <span class="cell-sub">' + esc(t.email) + '</span></div>' +
-          '<div class="cell-sub">Subjects: ' + esc(subs) + '</div></div>' +
+          '<div class="cell-sub">Subjects: ' + esc(subs) + '</div>' +
+          '<div class="cell-sub">Classes: ' + esc(cls) + '</div></div>' +
         '<div class="pp-row__side">' + pill +
-          '<button class="btn btn--secondary btn--sm" data-act="tc-subjects" data-email="' + esc(t.email) + '" data-subjects="' + esc(subs === '—' ? '' : subs) + '">Edit subjects</button>' +
+          '<button class="btn btn--secondary btn--sm" data-act="tc-edit" data-email="' + esc(t.email) + '">Edit</button>' +
           toggle +
           '<button class="btn btn--quiet btn--sm" data-act="tc-resetpin" data-email="' + esc(t.email) + '">Reset PIN</button>' +
         '</div></div>';
@@ -3154,15 +3163,69 @@ window.WHAAdminRecheckBridge = {
     set('letter', /[A-Za-z]/.test(pin));
   }
 
+  // ---- teacher subject/class chips ----
+  var TEACHER_SUBJECTS = ['Mathematics','English','Urdu','Science','Physics','Chemistry','Biology','Computer Science','Islamiat','Pakistan Studies','General Knowledge'];
+  function tcChipHtml(attr, val, label, checked){
+    return '<label class="ed-chip"><input type="checkbox" '+attr+' value="'+esc(val)+'"'+(checked?' checked':'')+'><span>'+esc(label)+'</span></label>';
+  }
+  function fillChips(host, items, attr, chosen){
+    if (!host) return;
+    var map = {}; (chosen||[]).forEach(function(x){ map[String(x).trim().toLowerCase()]=1; });
+    host.innerHTML = items.map(function(it){ return tcChipHtml(attr, it.v, it.l, map[String(it.v).toLowerCase()]); }).join('');
+  }
+  function subjectItems(){ return TEACHER_SUBJECTS.map(function(x){ return {v:x,l:x}; }); }
+  function classItems(){ var a=[]; for (var c=6;c<=12;c++) a.push({v:String(c),l:'Class '+c}); return a; }
+  function chipValues(host, attr){ if(!host) return []; return Array.prototype.map.call(host.querySelectorAll('['+attr+']:checked'), function(c){ return c.value; }); }
+  function fillTcChips(){
+    fillChips(qs('#tc-subject-chips'), subjectItems(), 'data-tsub', []);
+    fillChips(qs('#tc-class-chips'), classItems(), 'data-tcls', []);
+  }
+
+  function openTeacherEdit(email){
+    var t = null; for (var i=0;i<teacherList.length;i++){ if (String(teacherList[i].email)===String(email)) { t=teacherList[i]; break; } }
+    if (!t) return;
+    var wrap = document.createElement('div'); wrap.className='vmodal'; wrap.id='tmodal';
+    wrap.innerHTML =
+      '<div class="vmodal__card">' +
+        '<div class="vmodal__bar"><strong>Edit teacher &mdash; '+esc(t.fullName||t.email)+'</strong>' +
+          '<span><button class="btn btn--primary btn--sm" data-tact="save">Save</button> ' +
+          '<button class="btn btn--quiet btn--sm" data-tact="close">Close</button></span></div>' +
+        '<div class="field"><label class="field__label">Subjects</label><div class="ed-chips" id="te-subject-chips"></div></div>' +
+        '<div class="field"><label class="field__label">Classes <span class="muted">(empty = all classes)</span></label><div class="ed-chips" id="te-class-chips"></div></div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+    fillChips(qs('#te-subject-chips'), subjectItems(), 'data-tsub', t.subjects||[]);
+    fillChips(qs('#te-class-chips'), classItems(), 'data-tcls', t.classes||[]);
+    wrap.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('[data-tact]') : null;
+      if (b){ if (b.getAttribute('data-tact')==='save') saveTeacherEdit(email, b); else closeTeacherEdit(); return; }
+      if (e.target===wrap) closeTeacherEdit();
+    });
+  }
+  function closeTeacherEdit(){ var w=qs('#tmodal'); if (w&&w.parentNode) w.parentNode.removeChild(w); }
+  function saveTeacherEdit(email, btn){
+    var subs = chipValues(qs('#te-subject-chips'), 'data-tsub');
+    var cls = chipValues(qs('#te-class-chips'), 'data-tcls');
+    if (!subs.length){ toast('Pick at least one subject.', 'bad'); return; }
+    busy(btn, true);
+    authed('admin/updateTeacher', { email: email, subjects: subs.join(', '), classes: cls.join(', ') })
+      .then(function(){ toast('Teacher updated.', 'ok'); closeTeacherEdit(); loadTeachers(); })
+      .catch(function(e){ fail(e, 'Could not update the teacher.'); })
+      .then(function(){ busy(btn, false); });
+  }
+
   function createTeacher(button) {
+    var subs = chipValues(qs('#tc-subject-chips'), 'data-tsub');
+    var cls = chipValues(qs('#tc-class-chips'), 'data-tcls');
     var payload = {
       fullName: qs('#tc-name').value.trim(),
       email: qs('#tc-email').value.trim(),
       pin: qs('#tc-pin').value.trim(),
-      subjects: qs('#tc-subjects').value.trim()
+      subjects: subs.join(', '),
+      classes: cls.join(', ')
     };
-    if (!payload.fullName || !payload.email || !payload.pin || !payload.subjects) {
-      toast('Fill in name, email, PIN and at least one subject.', 'bad');
+    if (!payload.fullName || !payload.email || !payload.pin || !subs.length) {
+      toast('Fill in name, email, PIN and pick at least one subject.', 'bad');
       return;
     }
     var pe = teacherPinError(payload.pin);
@@ -3171,7 +3234,8 @@ window.WHAAdminRecheckBridge = {
     authed('admin/createTeacher', { teacher: payload })
       .then(function () {
         toast('Teacher created.', 'ok');
-        ['#tc-name', '#tc-email', '#tc-pin', '#tc-subjects'].forEach(function (s) { qs(s).value = ''; });
+        qs('#tc-name').value = ''; qs('#tc-email').value = ''; qs('#tc-pin').value = '';
+        fillTcChips(); updateTcPinRules();
         loadTeachers();
       })
       .catch(function (e) { fail(e, 'Could not create the teacher.'); })
@@ -3184,13 +3248,14 @@ window.WHAAdminRecheckBridge = {
     var act = t.dataset.act;
     var email = t.getAttribute('data-email');
     if (act === 'gr-refresh-teachers') return loadTeachers();
-    if (act === 'tc-subjects') {
-      var next = window.prompt('Subjects for ' + email + ' (comma-separated):', t.getAttribute('data-subjects') || '');
-      if (next == null) return;
-      return authed('admin/setTeacherSubjects', { email: email, subjects: next })
-        .then(function () { toast('Subjects updated.', 'ok'); loadTeachers(); })
-        .catch(function (err) { fail(err, 'Could not update subjects.'); });
+    if (act === 'tc-eye') {
+      var pinEl = qs('#tc-pin'); if (!pinEl) return;
+      var showing = pinEl.type === 'text';
+      pinEl.type = showing ? 'password' : 'text';
+      t.textContent = showing ? '👁' : '🙈';
+      return;
     }
+    if (act === 'tc-edit') return openTeacherEdit(email);
     if (act === 'tc-status') {
       var status = t.getAttribute('data-status');
       return authed('admin/setTeacherStatus', { email: email, status: status })
@@ -3216,11 +3281,7 @@ window.WHAAdminRecheckBridge = {
     if (create) create.addEventListener('click', function (e) { createTeacher(e.currentTarget); });
     var pinInput = qs('#tc-pin');
     if (pinInput) pinInput.addEventListener('input', updateTcPinRules);
-    var eye = qs('[data-eye="tc-pin"]');
-    if (eye) eye.addEventListener('click', function () {
-      var i = qs('#tc-pin'); if (!i) return;
-      i.type = (i.type === 'password') ? 'text' : 'password';
-    });
+    fillTcChips();
   }
 
   // ==========================================================================
@@ -3838,7 +3899,7 @@ window.WHAAdminRecheckBridge = {
   });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { var _vm = qs('#vmodal'); if (_vm) { closeVoucher(); return; } }
+    if (e.key === 'Escape') { var _tm = qs('#tmodal'); if (_tm) { closeTeacherEdit(); return; } var _vm = qs('#vmodal'); if (_vm) { closeVoucher(); return; } }
     if (e.key === 'Escape' && !qs('#dialog').hidden) closeDialog();
   });
 

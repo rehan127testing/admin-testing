@@ -541,6 +541,34 @@ select.input { appearance: auto; background: var(--surface); }
 .ed-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line,#e5e7eb); border-radius:999px; padding:6px 12px; cursor:pointer; font-size:.85rem; user-select:none; }
 .ed-chip input { margin:0; }
 .ed-chip:has(input:checked) { background:#0f766e; border-color:#0f766e; color:#fff; }
+/* Fee voucher */
+.vmodal{position:fixed;inset:0;z-index:10001;background:rgba(15,23,42,.5);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 16px;}
+.vmodal__card{background:#fff;border-radius:14px;max-width:560px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);padding:16px;}
+.vmodal__bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.vform{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.vform label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted,#6b7280);}
+.voucher-sheet{border:1.5px solid #0f766e;border-radius:12px;padding:20px;color:#0f172a;}
+.vh{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #0f766e;padding-bottom:10px;margin-bottom:12px;}
+.vh__brand{font-size:1.3rem;font-weight:800;color:#0f766e;}
+.vh__title{font-size:1rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#334155;}
+.vmeta{font-size:.82rem;color:#475569;margin-bottom:12px;}
+.vtab{width:100%;border-collapse:collapse;}
+.vtab td{padding:7px 4px;border-bottom:1px solid #e2e8f0;font-size:.92rem;vertical-align:top;}
+.vtab td:first-child{color:#64748b;width:42%;}
+.vtab td:last-child{font-weight:600;}
+.vamt{margin-top:14px;font-size:1.15rem;}
+.vamt b{color:#0f766e;}
+.vnote{margin-top:10px;font-size:.9rem;color:#334155;}
+.vfoot{margin-top:16px;font-size:.78rem;color:#64748b;border-top:1px dashed #cbd5e1;padding-top:10px;}
+@media (max-width:560px){ .vform{grid-template-columns:1fr} }
+@media print {
+  body * { visibility:hidden !important; }
+  #vmodal, #vmodal * { visibility:visible !important; }
+  #vmodal{position:absolute;inset:auto;left:0;top:0;background:#fff;padding:0;}
+  #vmodal .no-print{display:none !important;}
+  #vmodal .vmodal__card{box-shadow:none;max-width:none;padding:0;}
+  .voucher-sheet{border:none;}
+}
 /* Teacher PIN field */
 .pin-wrap { position: relative; }
 .pin-wrap .input { padding-right: 42px; }
@@ -1434,7 +1462,8 @@ select.input { appearance: auto; background: var(--surface); }
     el.className = 'toast' + (kind ? ' toast--' + kind : '');
     el.textContent = message;
     host.appendChild(el);
-    setTimeout(function () { el.remove(); }, kind === 'bad' ? 6000 : 4000);
+    var _d = Math.max(6000, Math.min(20000, Math.round(3500 + String(message || '').length * 55)));
+    setTimeout(function () { el.remove(); }, _d);
   }
 
   function busy(button, isBusy) {
@@ -1629,7 +1658,10 @@ window.WHAAdminRecheckBridge = {
       if (STU_HIDE_KEYS[k]) return;
       extra += '<dt>' + esc(prettyKey(k)) + '</dt><dd>' + esc(fmtVal(fd[k])) + '</dd>';
     });
-    return '<div class="stu-body__acts"><button class="btn btn--secondary btn--sm" data-act="stu-edit" data-key="' + esc(key) + '">Edit details</button></div>' +
+    return '<div class="stu-body__acts">' +
+        '<button class="btn btn--secondary btn--sm" data-act="stu-edit" data-key="' + esc(key) + '">Edit details</button> ' +
+        '<button class="btn btn--quiet btn--sm" data-act="stu-voucher" data-key="' + esc(key) + '">Fee voucher</button>' +
+      '</div>' +
       '<dl class="stu-dl">' + base + '</dl>' +
       (extra ? '<div class="stu-sec">Enrollment form</div><dl class="stu-dl">' + extra + '</dl>' : '');
   }
@@ -1771,6 +1803,75 @@ window.WHAAdminRecheckBridge = {
       .catch(function(e){ fail(e, 'Could not save changes.'); })
       .then(function(){ busy(btn, false); });
   }
+
+  // ---- fee voucher (printable) ----
+  var V_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function vMon(i){ return V_MONTHS[i] || ''; }
+  function openVoucher(key){
+    var s = findStudentByKey(key); if (!s) return;
+    var fd = (s.formData && typeof s.formData === 'object') ? s.formData : {};
+    var sid = String(s.studentId||'').trim() || String(s.enrollmentId||'');
+    var now = new Date();
+    var billing = vMon(now.getMonth()) + ' ' + now.getFullYear();
+    var due = new Date(now.getTime() + 7*864e5);
+    var dueStr = due.getFullYear() + '-' + ('0'+(due.getMonth()+1)).slice(-2) + '-' + ('0'+due.getDate()).slice(-2);
+    var amount = (fd.planPrice!=null && fd.planPrice!=='') ? fd.planPrice : '';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'vmodal'; wrap.id = 'vmodal';
+    wrap.innerHTML =
+      '<div class="vmodal__card">' +
+        '<div class="vmodal__bar no-print">' +
+          '<strong>Fee voucher</strong>' +
+          '<span><button class="btn btn--primary btn--sm" data-vact="print">Print / Save PDF</button> ' +
+          '<button class="btn btn--quiet btn--sm" data-vact="close">Close</button></span>' +
+        '</div>' +
+        '<div class="vform no-print">' +
+          '<label>Billing month<input class="input" id="v-month" value="' + esc(billing) + '"></label>' +
+          '<label>Due date<input class="input" id="v-due" type="date" value="' + esc(dueStr) + '"></label>' +
+          '<label>Amount (PKR)<input class="input" id="v-amt" type="number" value="' + esc(String(amount)) + '"></label>' +
+          '<label>Note (optional)<input class="input" id="v-note" value=""></label>' +
+        '</div>' +
+        '<div id="v-sheet"></div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+
+    function fmtDue(iso){ if(!iso) return '—'; var d=new Date(iso); if(isNaN(d.getTime())) return esc(iso); return d.getDate()+' '+vMon(d.getMonth()).slice(0,3)+' '+d.getFullYear(); }
+    function render(){
+      var month = qs('#v-month').value, dueV = qs('#v-due').value, amt = qs('#v-amt').value, note = qs('#v-note').value;
+      var vno = 'WHA-FEE-' + (sid||'NA') + '-' + (now.getFullYear() + '' + ('0'+(now.getMonth()+1)).slice(-2));
+      var issued = now.getDate()+' '+vMon(now.getMonth()).slice(0,3)+' '+now.getFullYear();
+      var cls = (fd.classLevel!=null && fd.classLevel!=='') ? fd.classLevel : (s.classLevel||'');
+      var plan = fd.plan || fd.planTier || '';
+      var amtStr = (amt!=='' && amt!=null) ? Number(amt).toLocaleString() : '—';
+      function rowT(k,v){ return '<tr><td>'+esc(k)+'</td><td>'+esc((v==null||v==='')?'—':v)+'</td></tr>'; }
+      qs('#v-sheet').innerHTML =
+        '<div class="voucher-sheet">' +
+          '<div class="vh"><div class="vh__brand">W.H. Academy</div><div class="vh__title">Fee Voucher</div></div>' +
+          '<div class="vmeta">Voucher #: <b>'+esc(vno)+'</b> &middot; Issued: <b>'+esc(issued)+'</b></div>' +
+          '<table class="vtab">' +
+            rowT('Student ID', sid) +
+            rowT('Student Name', s.fullName||fd.fullName||'') +
+            rowT('Father Name', fd.fatherName||'') +
+            rowT('Class', cls ? ('Class '+cls) : '') +
+            rowT('Plan', plan) +
+            rowT('Billing Month', month) +
+            rowT('Due Date', fmtDue(dueV)) +
+          '</table>' +
+          '<div class="vamt">Amount Due: <b>PKR '+esc(amtStr)+'</b></div>' +
+          (note ? '<div class="vnote">'+esc(note)+'</div>' : '') +
+          '<div class="vfoot">Please pay on or before the due date. For queries call 0329-5215703. &mdash; W.H. Academy</div>' +
+        '</div>';
+    }
+    render();
+    ['v-month','v-due','v-amt','v-note'].forEach(function(id){ var el=qs('#'+id); if(el) el.addEventListener('input', render); });
+    wrap.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('[data-vact]') : null;
+      if (b){ if (b.getAttribute('data-vact')==='print') window.print(); else closeVoucher(); return; }
+      if (e.target === wrap) closeVoucher();
+    });
+  }
+  function closeVoucher(){ var w = qs('#vmodal'); if (w && w.parentNode) w.parentNode.removeChild(w); }
 
   function renderResults(list, query) {
     var host = qs('#results');
@@ -3685,6 +3786,7 @@ window.WHAAdminRecheckBridge = {
       if (a === 'stu-edit') return openStuEdit(b.dataset.key);
       if (a === 'stu-save') return saveStuEdit(b.dataset.key, b);
       if (a === 'stu-cancel') return cancelStuEdit(b.dataset.key);
+      if (a === 'stu-voucher') return openVoucher(b.dataset.key);
       return;
     }
     var head = e.target.closest('.stu-head');
@@ -3736,6 +3838,7 @@ window.WHAAdminRecheckBridge = {
   });
 
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { var _vm = qs('#vmodal'); if (_vm) { closeVoucher(); return; } }
     if (e.key === 'Escape' && !qs('#dialog').hidden) closeDialog();
   });
 
